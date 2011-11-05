@@ -134,11 +134,13 @@ if __name__ == "__main__":
 
     http.serve()
     
+
+    #Un-comment for SSL support and comment above WSGIListener code
     #import ssl
-    #CERTFILE="/home/inex/server.crt"
-    #KEYFILE="/home/inex/server.key.insecure"
+    #CERTFILE="PATH TO CERTIFICATE FILE"
+    #KEYFILE="PATH TO KEY FILE" # should be password-less
     #SSL_VERSION=ssl.PROTOCOL_SSLv23
 
     #httpsd = pyttp.wsgi.WSGISSLListener(CERTFILE, KEYFILE, SSL_VERSION, MusicBrowser(documentRoot), port, logger=pyttp.logger.FileLogger("~/.pyttp/log"), debug=True, nThreads=40)
 
-    httpsd.serve()
+    #httpsd.serve()
