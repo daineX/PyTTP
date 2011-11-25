@@ -6,14 +6,14 @@ PyTTP - a small and dirty WSGI-compliant server written entirely in Python
 File Structure
 ==============
 pyttp/core.py: HTTP Requests and Responses
-pyttp/cnetwork.py: Simple socket listener; including SSL support
-pyttp/cwsgi.py: WSGI-wrapper for network.py
-pyttp/database.py: database abstraction - might be slow as hell;
+pyttp/network.py: Simple socket listener; including SSL support
+pyttp/wsgi.py: WSGI-wrapper for network.py
+pyttp/database.py: ORM - might be slow as hell;
              used as a means to teach me some meta-programming
-pyttp/chtml.py: write HTML directly in Python; who needs templates anyways?
-pyttp/clogger.py: names says it all
-pyttp/chelpers.py: some helpers for parsing and uploading
-pyttp/cplugin.py: base class for a plugin mechanism
-pyttp/ctimeout.py: helper for dealing with potential deadlocks
-pyttp/cconfig.py: ugly brother to ConfigParser
+pyttp/html.py: write HTML directly in Python; who needs templates anyways?
+pyttp/logger.py: names says it all
+pyttp/helpers.py: some helpers for parsing and uploading
+pyttp/plugin.py: base class for a plugin mechanism
+pyttp/timeout.py: helper for dealing with potential deadlocks
+pyttp/config.py: ugly brother to ConfigParser - no really used
 exmaples/: some example WSGI-apps; will only run if pyttp module is in path
