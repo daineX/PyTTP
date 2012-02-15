@@ -17,11 +17,11 @@ class DummyLogger(object):
         print "%s: %s" % (severity, message)
 
 class DefaultHandler(object):
-    
-    
+
+
     def __init__(self, *args):
         pass
-    
+
     def readRequest(self, conn, addr):
         request = ''
         last4 = ''
@@ -42,7 +42,7 @@ class DefaultHandler(object):
                 if not data:
                     ready = False
                     break
-                if last4 == '\r\n\r\n': 
+                if last4 == '\r\n\r\n':
                     break
         else:
             while True:
@@ -57,8 +57,8 @@ class DefaultHandler(object):
                 if data.endswith('\r\n\r\n'):
                     break
         return ready, RequestParser().parse(request)
-        
-        
+
+
     def buildEchoResponse(self, req, payload):
         status = Status("HTTP/1.1", "200", "OK")
         headers = []
@@ -66,13 +66,13 @@ class DefaultHandler(object):
         headers.append(Header("Connection", "close"))
         import datetime
         headers.append(Header("Date", datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S UTC")))
-        
+
         payload = str(req) + payload
-        
+
         resp = Response(status, headers, payload)
         return resp
-              
-        
+
+
     def __call__(self, conn, addr):
         req, payload = self.readRequest(conn, addr)
         resp = self.buildEchoResponse(req, payload)
@@ -88,11 +88,11 @@ class SocketFileWrapper(object):
     like readline() forget incomplete lines when the
     socket is not ready to be read.
     """
-    
+
     def __init__(self, sock):
         self.sock = sock
         self.buf = ""
-        
+
     def read(self, n):
         while len(self.buf) < n:
             s = self.sock.recv(1024)
@@ -105,7 +105,7 @@ class SocketFileWrapper(object):
             return rBuf
         rBuf = self.buf[:n]
         self.buf = self.buf[n:]
-        return rBuf          
+        return rBuf
 
     def readline(self):
         while not '\n' in self.buf:
@@ -117,17 +117,17 @@ class SocketFileWrapper(object):
         if delim < 0:
             rBuf = self.buf
             self.buf = ''
-            return rBuf            
+            return rBuf
         rBuf = self.buf[:delim]
         self.buf = self.buf[delim:]
         return rBuf
-        
+
     def write(self, msg):
         self.sock.send(msg)
 
 
 class WSGIHandler(DefaultHandler):
-    
+
     """
     HTTP/1.1-compliant WSGI Handler
     Implements the minimum requirement for environment data.
@@ -137,8 +137,8 @@ class WSGIHandler(DefaultHandler):
     client requests such a connection.
     A hard-coded timeout of 5 secs is used for the socket connection.
     """
-    
-    
+
+
     def __init__(self, app, port, debug=None, logger=DummyLogger()):
         self.app = app
         self.port = port
@@ -151,7 +151,7 @@ class WSGIHandler(DefaultHandler):
         self.exc_info = None
         self.waitForResponse = True
         self.firstChunk = ""
-        
+
     def start_response(self, status, headers, exc_info=None):
         """start_response callback as defined by WSGI (PEP 333)"""
         self.logger.log("INFO", "start_response called; status: %s, headers: %s" %
@@ -161,15 +161,15 @@ class WSGIHandler(DefaultHandler):
         if exc_info:
             self.exc_info = exc_info
         return self.write
-        
+
     def write(self, msg):
         self.prePayload += msg
-        
-        
+
+
     def _chunkify(self, chunk):
         """Calculates chunk size and returns ready-to-send chunk.
         Arguments:
-        chunk -- chunked data to chunkify; 
+        chunk -- chunked data to chunkify;
         """
         chunkLength = len(chunk)
         chunkSize = hex(chunkLength)[2:]
@@ -197,7 +197,7 @@ class WSGIHandler(DefaultHandler):
                 except:
                     path = req.type.resource
                     query = ''
-                    
+
                 self.logger.log("INFO", "%s:%s requesting \"%s\"" % (addr[0], addr[1], req.type.resource))
                 self.logger.log("INFO", "Headers: \n%s" % req.headers)
                 environ['PATH_INFO'] = path
@@ -217,9 +217,9 @@ class WSGIHandler(DefaultHandler):
                     environ['SERVER_NAME'] = ['HTTP_POST']
                 else:
                     environ['SERVER_NAME'] = 'localhost'
-                    
+
                 environ['SERVER_PROTOCOL'] = 'HTTP/' + req.type.version
-                
+
                 #setup special wsgi environment
                 environ['wsgi.version'] = (1, 0)
                 environ['wsgi.url_scheme'] = "http"
@@ -242,7 +242,7 @@ class WSGIHandler(DefaultHandler):
                         self.firstChunk = ""
                 else:
                     chunkedEncoding = False
-                
+
                 headers.append(Header("Server", "PyTTP/0.0.1"))
                 headers.append(Header("Connection", connectionSetting))
                 if chunkedEncoding:
@@ -265,7 +265,7 @@ class WSGIHandler(DefaultHandler):
                 #send headers
                 resp = Response(status, headers, self.prePayload)
                 conn.sendall(str(resp))
-                
+
                 if chunkedEncoding:
                     self.logger.log("INFO","Using chunked transfer encoding")
                     conn.sendall(self._chunkify(self.firstChunk))
@@ -277,14 +277,14 @@ class WSGIHandler(DefaultHandler):
                     conn.sendall(self._chunkify(""))
                 else:
                     conn.sendall(str(payload))
-                    
+
                 self.logger.log("INFO", "End of response")
-                
+
                 if self.exc_info:
                     type, value, traceback = self.exc_info
                     raise value
-            
-            except socket.timeout:                
+
+            except socket.timeout:
                 try:
                     conn.close()
                     environ['wsgi.input'].close()
@@ -320,7 +320,7 @@ class WSGIHandler(DefaultHandler):
                 except:
                     pass
                 break
-            
+
 
             keepAliveCount += 1
             self.status = None
@@ -331,16 +331,16 @@ class WSGIHandler(DefaultHandler):
 
         try:
             environ['wsgi.input'].close()
-            conn.close()            
+            conn.close()
         except:
             pass
 
 
 class WSGIListener(network.ThreadedSocketListener):
-    
-      def __init__(self, app, port, timeout = None, nThreads = None, logger=DummyLogger(), debug=None):
-          self.handler = WSGIHandler(app, port, debug, logger)
-          network.ThreadedSocketListener.__init__(self, port, self.handler, timeout, nThreads)
+
+    def __init__(self, app, port, timeout = None, nThreads = None, logger=DummyLogger(), debug=None):
+        self.handler = WSGIHandler(app, port, debug, logger)
+        network.ThreadedSocketListener.__init__(self, port, self.handler, timeout, nThreads)
 
 
 class WSGISSLListener(network.ThreadedSSLListener):
@@ -348,4 +348,4 @@ class WSGISSLListener(network.ThreadedSSLListener):
     def __init__(self, certFile, keyFile, sslVersion, app, port, timeout = None, nThreads = None, logger=DummyLogger(), debug=None):
         self.handler = WSGIHandler(app, port, debug, logger)
         network.ThreadedSSLListener.__init__(self, certFile, keyFile, sslVersion, port, self.handler, timeout, nThreads)
-        
+
