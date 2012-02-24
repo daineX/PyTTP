@@ -10,11 +10,13 @@ import ssl
 
 class DummyLogger(object):
 
-    def __init__(self):
-        pass
-
     def log(self, severity, message):
-        print "%s: %s" % (severity, message)
+        if __debug__:
+            print "%s: %s" % (severity, message)
+
+
+class SocketExhausted(Exception):
+    pass
 
 class DefaultHandler(object):
 
@@ -40,8 +42,7 @@ class DefaultHandler(object):
                 last4 += data
                 request += data
                 if not data:
-                    ready = False
-                    break
+                    raise SocketExhausted
                 if last4 == '\r\n\r\n':
                     break
         else:
@@ -52,8 +53,7 @@ class DefaultHandler(object):
                     break
                 request += data
                 if not data:
-                    ready = False
-                    break
+                    raise SocketExhausted
                 if data.endswith('\r\n\r\n'):
                     break
         return ready, RequestParser().parse(request)
@@ -232,7 +232,8 @@ class WSGIHandler(DefaultHandler):
                 environ['wsgi.multiprocess'] = True
 
                 payload = self.app(environ, self.start_response)
-                if isinstance(payload, types.GeneratorType):
+                if hasattr(payload, "__iter__"):
+                    payload = iter(payload)
                     #payload is a generator, use chunked transfer encoding
                     chunkedEncoding = True
                     #get first chunk so that start_response will be called now
@@ -284,23 +285,14 @@ class WSGIHandler(DefaultHandler):
                     type, value, traceback = self.exc_info
                     raise value
 
-            except socket.timeout:
+            except (socket.timeout, ssl.SSLError, SocketExhausted):
                 try:
                     conn.close()
                     environ['wsgi.input'].close()
                 except:
                     pass
                 break
-            except ssl.SSLError:
-                try:
-                    conn.close()
-                    environ['wsgi.input'].close()
-                except:
-                    pass
-                #except Exception, e:
-                    #print e
-                    #pass
-                break
+
             except Exception, e:
                 import traceback
                 formatted_exception = ''.join(traceback.format_exception(*sys.exc_info()))
