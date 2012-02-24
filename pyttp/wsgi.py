@@ -93,6 +93,7 @@ class SocketFileWrapper(object):
         self.sock = sock
         self.buf = ""
 
+
     def read(self, n):
         while len(self.buf) < n:
             s = self.sock.recv(1024)
@@ -106,6 +107,7 @@ class SocketFileWrapper(object):
         rBuf = self.buf[:n]
         self.buf = self.buf[n:]
         return rBuf
+
 
     def readline(self):
         while not '\n' in self.buf:
@@ -121,6 +123,21 @@ class SocketFileWrapper(object):
         rBuf = self.buf[:delim]
         self.buf = self.buf[delim:]
         return rBuf
+
+
+    def readlines(self):
+        lines = []
+        while True:
+            line = self.readline()
+            if not line:
+                break
+            lines.append(line)
+        return lines
+
+
+    def __getattr__(self, value):
+        fObj = self.sock.makefile()
+        return getattr(fObj, value)
 
     def write(self, msg):
         self.sock.send(msg)
