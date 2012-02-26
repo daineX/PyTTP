@@ -231,7 +231,7 @@ class WSGIHandler(DefaultHandler):
                     connectionSetting = "close"
                 environ['SERVER_PORT'] = self.port
                 if "HTTP_HOST" in environ:
-                    environ['SERVER_NAME'] = ['HTTP_POST']
+                    environ['SERVER_NAME'] = environ['HTTP_HOST']
                 else:
                     environ['SERVER_NAME'] = 'localhost'
 
