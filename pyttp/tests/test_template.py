@@ -124,7 +124,7 @@ class RenderTests(unittest.TestCase):
                 bla
                 foo
         //everything we got in one line
-        %a.bold(href: '= link', target: "_blank")= greeting['obj'].en
+        %a.bold#link(href: '= link', target: "_blank")= greeting['obj'].en
         blub
 """
         expected = """
@@ -133,7 +133,7 @@ class RenderTests(unittest.TestCase):
         <div class="big boxed" id="title">Guten Tag
             <p>Guten Tag bla foo</p>
         </div>
-        <a href="http://example.com" target="_blank" class="bold">hello</a>
+        <a href="http://example.com" target="_blank" class="bold" id="link">hello</a>
         blub
     </body>
 </html>"""
