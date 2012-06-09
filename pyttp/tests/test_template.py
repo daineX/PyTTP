@@ -109,6 +109,7 @@ class RenderTests(unittest.TestCase):
             %p= title
                 bla
                 foo
+        #everything we got in one line
         %a.bold(href: '= link', target: "_blank")= greeting
 """
         expected = """
