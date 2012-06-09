@@ -127,8 +127,6 @@ class Template(object):
             remainder = self.eval_code(context, remainder.lstrip())
         if remainder:
             html.append(self.render_tag_end(one_line=False))
-            html.append('\n')
-            html.append(' ' * (indent + Template.TAB_INDENT))
             html.append(remainder)
         return ''.join(html)
 
@@ -140,13 +138,17 @@ class Template(object):
             return '>'
 
 
-    def render_closing_tag(self, indent, tag_name):
-        return ''.join(['\n',
-                    ' '*indent,
-                    '</',
-                    tag_name,
-                    '>'
-                ])
+    def render_closing_tag(self, indent, tag_name, new_line=False):
+
+        if new_line:
+            res = ['\n', ' '*indent]
+        else:
+            res = []
+        res += ['</',
+                tag_name,
+                '>',
+               ]
+        return ''.join(res)
 
 
     def render(self, context, markup):
@@ -171,19 +173,24 @@ class Template(object):
 
             if indent > old_indent:
                 if last_line_had_tag:
-                    tag_stack.append((old_tag_name, old_indent))
+                    tag_stack.append((old_tag_name, old_indent, False))
 
             else:
                 if last_line_had_tag and last_line_had_remainder:
-                    yield self.render_closing_tag(old_indent, old_tag_name)
-                for closing_tag, closing_indent in reversed(tag_stack):
+                    yield self.render_closing_tag(old_indent, old_tag_name, False)
+                    last_line_had_remainder = False
+                for closing_tag, closing_indent, new_line in reversed(tag_stack):
                     if closing_indent >= indent:
-                        yield self.render_closing_tag(closing_indent, closing_tag)
+                        yield self.render_closing_tag(closing_indent, closing_tag, new_line)
                         tag_stack.pop()
+                        last_line_had_remainder = False
 
             stripped_line = self.handle_div(stripped_line)
 
             if self.is_tag(stripped_line):
+                if tag_stack:
+                    closing_tag, closing_indent, new_line = tag_stack.pop()
+                    tag_stack.append((closing_tag, closing_indent, True))
                 tag_name, attrs, is_value_insert, remainder = self.parse_tag(stripped_line)
                 parsed_attrs = self.parse_attrs(attrs)
                 tag_name, parsed_attrs = self.handle_shortcuts(tag_name, parsed_attrs)
@@ -219,5 +226,5 @@ class Template(object):
                 yield self.render_closing_tag(old_indent, old_tag_name)
             else:
                 yield self.render_tag_end(one_line=True)
-        for closing_tag, closing_indent in reversed(tag_stack):
-            yield self.render_closing_tag(closing_indent, closing_tag)
+        for closing_tag, closing_indent, new_line in reversed(tag_stack):
+            yield self.render_closing_tag(closing_indent, closing_tag, new_line)

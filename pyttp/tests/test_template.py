@@ -99,7 +99,7 @@ class RenderTests(unittest.TestCase):
         attrs = ''
 
         rendered = self.template.render_tag_start({}, indent, tag_name, attrs, remainder)
-        self.assertEqual(rendered, "\n    <li>\n        I'm a list item")
+        self.assertEqual(rendered, "\n    <li>I'm a list item")
 
 
     def test_render_tag_end(self):
@@ -119,19 +119,16 @@ class RenderTests(unittest.TestCase):
                 foo
         //everything we got in one line
         %a.bold(href: '= link', target: "_blank")= greeting
+        blub
 """
         expected = """
 <html>
     <body>
-        <div class="big boxed" id="title">
-            Guten Tag
-            <p>
-                Guten Tag bla foo
-            </p>
+        <div class="big boxed" id="title">Guten Tag
+            <p>Guten Tag bla foo</p>
         </div>
-        <a href="http://example.com" target="_blank" class="bold">
-            hello
-        </a>
+        <a href="http://example.com" target="_blank" class="bold">hello</a>
+        blub
     </body>
 </html>"""
 
