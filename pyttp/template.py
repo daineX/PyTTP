@@ -9,11 +9,11 @@ class Template(object):
 
     TAB_INDENT = 4
 
-    tag_re = r"%(?P<tag_name>\w[\w#\.]*)(\((?P<attrs>.+)\))?(?P<value_insert>=)?(?P<remainder>.+)?"
-    tag_name_re = r"(?P<name>\w+)"
-    tag_class_re = r"\.(?P<class>\w+)"
-    tag_id_re = r"#(?P<id>\w+)"
-    attr_re = r"(?P<key>\w+):\s*'(?P<value>.+?)',?", r"(?P<key>\w+):\s*\"(?P<value>.+?)\",?"
+    TAG_RE = r"%(?P<tag_name>\w[\w#\.]*)(\((?P<attrs>.+)\))?(?P<value_insert>=)?(?P<remainder>.+)?"
+    TAG_NAME_RE = r"(?P<name>\w+)"
+    TAG_CLASS_RE = r"\.(?P<class>\w+)"
+    TAG_ID_RE = r"#(?P<id>\w+)"
+    ATTR_RE = r"(?P<key>\w+):\s*'(?P<value>.+?)',?", r"(?P<key>\w+):\s*\"(?P<value>.+?)\",?"
 
     def is_comment(self, line):
         return line.strip().startswith('#')
@@ -41,7 +41,7 @@ class Template(object):
 
     def parse_tag(self, stripped_line):
 
-        m = re.match(Template.tag_re, stripped_line)
+        m = re.match(Template.TAG_RE, stripped_line)
         tag_name = m.group('tag_name')
         attrs = m.group('attrs')
         is_value_insert = bool(m.group('value_insert'))
@@ -56,7 +56,7 @@ class Template(object):
     def parse_attrs(self, attrs):
         parsed_attrs = []
         while attrs:
-            for regex in Template.attr_re:
+            for regex in Template.ATTR_RE:
                 m = re.match(regex, attrs)
                 if m:
                     break
@@ -70,19 +70,19 @@ class Template(object):
 
     def handle_shortcuts(self, tag_string, attrs):
         original_string = tag_string
-        m = re.match(Template.tag_name_re, tag_string)
+        m = re.match(Template.TAG_NAME_RE, tag_string)
         name = m.group("name")
         tag_string = tag_string[m.end():]
 
         classes = []
         tag_id = None
         while tag_string:
-            m = re.match(Template.tag_class_re, tag_string)
+            m = re.match(Template.TAG_CLASS_RE, tag_string)
             if m:
                 classes.append(m.group("class"))
                 tag_string = tag_string[m.end():]
                 continue
-            m = re.match(Template.tag_id_re, tag_string)
+            m = re.match(Template.TAG_ID_RE, tag_string)
             if m:
                 tag_id = m.group("id")
                 tag_string = tag_string[m.end():]
