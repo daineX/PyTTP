@@ -110,6 +110,12 @@ class RenderTests(unittest.TestCase):
 
     def test_render(self):
 
+        class Greeting(object):
+            pass
+
+        greeting = Greeting()
+        greeting.en = lambda: "hello"
+
         markup = """
 %html
     %body
@@ -118,7 +124,7 @@ class RenderTests(unittest.TestCase):
                 bla
                 foo
         //everything we got in one line
-        %a.bold(href: '= link', target: "_blank")= greeting
+        %a.bold(href: '= link', target: "_blank")= greeting['obj'].en
         blub
 """
         expected = """
@@ -134,7 +140,7 @@ class RenderTests(unittest.TestCase):
 
         context = dict(title="Guten Tag",
                        link="http://example.com",
-                       greeting="hello",
+                       greeting=dict(obj=greeting),
                        )
         rendered = ''.join(self.template.render(context, markup))
 

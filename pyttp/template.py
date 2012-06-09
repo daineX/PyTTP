@@ -75,6 +75,7 @@ class Template(object):
         else:
             return line
 
+
     def handle_shortcuts(self, tag_string, attrs):
         original_string = tag_string
         m = re.match(Template.TAG_NAME_RE, tag_string)
@@ -109,7 +110,10 @@ class Template(object):
 
 
     def eval_code(self, context, markup):
-        return context[markup]
+        value = eval(markup, globals(), context)
+        if callable(value):
+            value = value()
+        return value
 
 
     def render_tag_start(self, context, indent, tag_name, attrs, remainder, eval_remainder=False):
