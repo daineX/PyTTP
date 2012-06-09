@@ -16,7 +16,7 @@ class Template(object):
     ATTR_RE = r"(?P<key>\w+):\s*'(?P<value>.+?)',?", r"(?P<key>\w+):\s*\"(?P<value>.+?)\",?"
 
     def is_comment(self, line):
-        return line.strip().startswith('#')
+        return line.strip().startswith('//')
 
 
     def is_tag(self, line):
@@ -67,6 +67,13 @@ class Template(object):
             attrs = attrs[m.end():].lstrip()
 
         return parsed_attrs
+
+
+    def handle_div(self, line):
+        if line.startswith(".") or line.startswith("#"):
+            return "%div" + line
+        else:
+            return line
 
     def handle_shortcuts(self, tag_string, attrs):
         original_string = tag_string
@@ -174,6 +181,8 @@ class Template(object):
                         yield self.render_closing_tag(closing_indent, closing_tag)
                         tag_stack.pop()
 
+            stripped_line = self.handle_div(stripped_line)
+
             if self.is_tag(stripped_line):
                 tag_name, attrs, is_value_insert, remainder = self.parse_tag(stripped_line)
                 parsed_attrs = self.parse_attrs(attrs)
@@ -192,7 +201,6 @@ class Template(object):
                 else:
                     last_line_had_remainder = False
                 old_indent = indent
-
             else:
                 if last_line_had_remainder:
                     yield ' '
@@ -205,6 +213,7 @@ class Template(object):
                     yield line.lstrip()
                 last_line_had_tag = False
                 last_line_had_remainder = False
+
         if last_line_had_tag:
             if last_line_had_remainder:
                 yield self.render_closing_tag(old_indent, old_tag_name)

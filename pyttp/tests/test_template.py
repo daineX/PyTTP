@@ -12,7 +12,7 @@ class RenderTests(unittest.TestCase):
         self.template = Template()
 
     def test_comment(self):
-        comment_line = "#this is a comment"
+        comment_line = "//this is a comment"
         non_comment_line = '%li'
 
         self.assertTrue(self.template.is_comment(comment_line))
@@ -49,11 +49,19 @@ class RenderTests(unittest.TestCase):
                                                     "href: 'bar', target: '_blank'",
                                                     True,
                                                     "foo"))
-
     def test_parse_attrs(self):
         attrs = "href: 'bar', target: \"foo\""
 
         self.assertEqual(self.template.parse_attrs(attrs), [('href', 'bar'), ('target', 'foo')])
+
+
+    def test_handle_div(self):
+
+        line = ".big"
+        self.assertEqual(self.template.handle_div(line), "%div.big")
+
+        line = "#title"
+        self.assertEqual(self.template.handle_div(line), "%div#title")
 
 
     def test_handle_shortcuts(self):
@@ -105,11 +113,11 @@ class RenderTests(unittest.TestCase):
         markup = """
 %html
     %body
-        %div#title.big.boxed= title
+        #title.big.boxed= title
             %p= title
                 bla
                 foo
-        #everything we got in one line
+        //everything we got in one line
         %a.bold(href: '= link', target: "_blank")= greeting
 """
         expected = """
@@ -133,5 +141,7 @@ class RenderTests(unittest.TestCase):
                        )
         rendered = ''.join(self.template.render(context, markup))
 
+        print markup
+        print '=' * 80
         print rendered
         self.assertEqual(rendered, expected)
