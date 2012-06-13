@@ -3,7 +3,8 @@ import unittest
 import sys
 sys.path.append("../..")
 
-from pyttp.template import Node, TagNode, TextNode, Template
+from pyttp.template import Template
+from pyttp.template_node import Node, TagNode, TextNode
 
 
 class RenderTests(unittest.TestCase):
@@ -45,7 +46,7 @@ class RenderTests(unittest.TestCase):
     def test_parse_tag(self):
         line = "%a(href: 'bar', target: '_blank')= foo"
 
-        tag_node = TagNode({}, line)
+        tag_node = TagNode( line)
 
         self.assertEqual(tag_node._parse_tag(), ('a',
                                                     "href: 'bar', target: '_blank'",
@@ -53,7 +54,7 @@ class RenderTests(unittest.TestCase):
                                                     "foo"))
     def test_parse_attrs(self):
         attrs = "href: 'bar', target: \"foo\""
-        tag_node = TagNode({}, "%dummy")
+        tag_node = TagNode( "%dummy")
         self.assertEqual(tag_node._parse_attrs(attrs), [('href', 'bar'), ('target', 'foo')])
 
 
@@ -67,7 +68,7 @@ class RenderTests(unittest.TestCase):
 
 
     def test_handle_shortcuts(self):
-        tag_node = TagNode({}, "%dummy")
+        tag_node = TagNode( "%dummy")
 
         tag_string = "div#title.big.boxed"
         attrs = [('style', 'float: left;')]
@@ -80,7 +81,7 @@ class RenderTests(unittest.TestCase):
                                  ('id', 'title')])
 
     def test_invalid_attrs(self):
-        tag_node = TagNode({}, "%dummy")
+        tag_node = TagNode( "%dummy")
         missing_key = "'bar', target: 'foo'"
         missing_value = "href: 'bar', target: "
         wrong_delimiter = "href: 'bar'; target: 'foo'"
@@ -98,8 +99,8 @@ class RenderTests(unittest.TestCase):
 
     def test_render_tag_start(self):
 
-        tag_node = TagNode({}, "%li")
-        tag_node.add_child(TextNode({}, "I'm a list item"))
+        tag_node = TagNode("%li")
+        tag_node.add_child(TextNode("I'm a list item"))
 
         indent = 4
         tag_name = 'li'
@@ -111,7 +112,7 @@ class RenderTests(unittest.TestCase):
 
 
     def test_render_tag_end(self):
-        tag_node = TagNode({}, "%dummy")
+        tag_node = TagNode( "%dummy")
 
         self.assertEqual(tag_node._render_tag_end(one_line=True), " />")
         self.assertEqual(tag_node._render_tag_end(one_line=False), ">")
@@ -137,7 +138,7 @@ class RenderTests(unittest.TestCase):
         %a.bold#link(href: '= link', target: "_blank")= greeting['obj'].en
         blub
 """
-        expected = '\n<html>\n    <body>\n        <div class="big boxed" id="title">Guten Tag \n            <img src="http://example.com" /> \n            <p>Guten Tag bla foo</p>\n        </div> \n        <a href="http://example.com" target="_blank" class="bold" id="link" />hello blub\n    </body>\n</html>'
+        expected = '\n<html>\n    <body>\n        <div class="big boxed" id="title">Guten Tag \n            <img src="http://example.com" /> \n            <p>Guten Tag bla foo</p>\n        </div> \n        <a href="http://example.com" target="_blank" class="bold" id="link">hello</a> blub\n    </body>\n</html>'
 
         context = dict(title="Guten Tag",
                        link="http://example.com",
@@ -153,26 +154,44 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(rendered, expected)
 
 
-class NodeTests(unittest.TestCase):
+    def test_conditional(self):
+        context = {'foo': 'baz'}
 
-    def test_render(self):
+        markup = """
+%html
+    %body
+        -if foo == 'bar'
+            bar
+        -if foo != 'bar'
+            .baz= foo
+                baz
+"""
 
-        ctx = {'link': 'example.com',
-               'label': 'click me'}
+        expected = '\n<html>\n    <body> \n        <div class="baz">baz baz</div></body>\n</html>'
 
-        root_node = TagNode(ctx, "%html")
-        body_node = TagNode(ctx, "%body")
-        div_node = TagNode(ctx, "%div.big this is a test")
-        a_node = TagNode(ctx, "%a(href: '= link')= label")
-        text_node = TextNode(ctx, "hello")
 
-        root_node.add_child(body_node)
-        body_node.add_child(div_node)
-        body_node.add_child(a_node)
-        div_node.add_child(text_node)
+        rendered = ''.join(self.template.render(context, markup))
+        print markup
+        print '=' * 80
+        print rendered
+        print '=' * 80
+        print expected        
+        self.assertEqual(rendered, expected)
 
-        print root_node.render(0)
 
+    def test_loop(self):
+        context = {'items': [str(x) for x in range(10)]}
+
+        markup = """
+%html
+    %body
+        -for item in items
+            .item= item
+        """
+        rendered = ''.join(self.template.render(context, markup))
+        print markup
+        print '=' * 80
+        print rendered
 
 if __name__ == "__main__":
 
