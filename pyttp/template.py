@@ -1,5 +1,5 @@
 
-from .template_node import Node, TagNode, TextNode
+from .template_node import Node, EvalNode, TagNode, TextNode
 from .template_execution_node import ExecutionNodeRegistry
 
 class Template(object):
@@ -20,6 +20,10 @@ class Template(object):
 
     def is_exec_node(self, line):
         return line.strip().startswith('-')
+
+
+    def is_eval_node(self, line):
+        return line.strip().startswith('=')
 
 
     def is_value_insert(self, line):
@@ -75,6 +79,8 @@ class Template(object):
             elif self.is_exec_node(stripped_line):
                 prefix = stripped_line.split(' ')[0][1:]
                 node = ExecutionNodeRegistry.get_node_cls(prefix)(stripped_line)
+            elif self.is_eval_node(stripped_line):
+                node = EvalNode(stripped_line)
             else:
                 node = TextNode(stripped_line)
 

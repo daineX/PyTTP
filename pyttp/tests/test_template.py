@@ -162,7 +162,7 @@ class RenderTests(unittest.TestCase):
             bar
         -if foo != 'bar'
             .baz= foo
-                baz
+                =foo
 """
 
         expected = '\n<html>\n    <body> \n        <div class="baz">baz baz</div>\n    </body>\n</html>'
@@ -176,12 +176,12 @@ class RenderTests(unittest.TestCase):
 
 
     def test_loop(self):
-        context = {'items': [str(x) for x in range(10)]}
+        context = {}
 
         markup = """
 %html
     %body
-        -for item in items
+        -for item in [str(x) for x in range(10)]
             -if item != '4'
                 .item= item
             -if item == '4'

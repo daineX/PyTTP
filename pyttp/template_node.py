@@ -55,6 +55,12 @@ class TextNode(Node):
 
 
 
+class EvalNode(TextNode):
+
+    def render(self, context, indent):
+        return self.eval_code(context, self.line[1:])
+
+
 class TagNode(Node):
 
     TAG_RE = r"%(?P<tag_name>\w[\w#\.]*)(\((?P<attrs>.+)\))?(?P<value_insert>=)?(?P<remainder>.+)?"
