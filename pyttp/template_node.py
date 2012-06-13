@@ -151,7 +151,7 @@ class TagNode(Node):
             childs = ' '
         if self.children:
             childs += ' '.join(child.render(context, indent + 1) for child in self.children)
-        new_line = any(x.is_tag for x in self.children)
+        new_line = any(x.is_tag or x.is_exec_node for x in self.children)
         if self.children or self.remainder:
             close = self._render_closing_tag(indent, self.tag_name, new_line=new_line)
 

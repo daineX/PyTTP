@@ -149,8 +149,6 @@ class RenderTests(unittest.TestCase):
         print markup
         print '=' * 80
         print rendered
-        print '=' * 80
-        print expected
         self.assertEqual(rendered, expected)
 
 
@@ -167,15 +165,13 @@ class RenderTests(unittest.TestCase):
                 baz
 """
 
-        expected = '\n<html>\n    <body> \n        <div class="baz">baz baz</div></body>\n</html>'
+        expected = '\n<html>\n    <body> \n        <div class="baz">baz baz</div>\n    </body>\n</html>'
 
 
         rendered = ''.join(self.template.render(context, markup))
         print markup
         print '=' * 80
         print rendered
-        print '=' * 80
-        print expected        
         self.assertEqual(rendered, expected)
 
 
@@ -186,12 +182,17 @@ class RenderTests(unittest.TestCase):
 %html
     %body
         -for item in items
-            .item= item
+            -if item != '4'
+                .item= item
+            -if item == '4'
+                .item4 Item is 4!
         """
+        expected = '\n<html>\n    <body>\n        <div class="item">0</div>\n        <div class="item">1</div>\n        <div class="item">2</div>\n        <div class="item">3</div>\n        <div class="item4">Item is 4!</div>\n        <div class="item">5</div>\n        <div class="item">6</div>\n        <div class="item">7</div>\n        <div class="item">8</div>\n        <div class="item">9</div> \n    </body>\n</html>'
         rendered = ''.join(self.template.render(context, markup))
         print markup
         print '=' * 80
         print rendered
+        self.assertEqual(rendered, expected)
 
 if __name__ == "__main__":
 
