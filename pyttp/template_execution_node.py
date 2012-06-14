@@ -18,6 +18,7 @@ class ExecutionNode(Node):
         return "ExecNode(%s, %s)" % (self.PREFIX, self.line)
 
 
+
 class ExecutionNodeRegistry(object):
 
     REGISTRY = None
@@ -44,16 +45,49 @@ class IfNode(ExecutionNode):
 
     def __init__(self, line):
         super(IfNode, self).__init__(line)
+        self.parse_condition()
 
+    def parse_condition(self):
         self.condition = self.line.split(' ', 1)[1]
 
+
     def render(self, context, indent):
-        if(self.eval_code(context, self.condition)):
+        if self.eval_code(context, self.condition):
             return super(ExecutionNode, self).render(context, indent)
         else:
             return ''
 
 ExecutionNodeRegistry.register(IfNode)
+
+
+class ElseNode(IfNode):
+
+    PREFIX = 'else'
+
+    def __init__(self, line):
+        ExecutionNode.__init__(self, line)
+
+    def parent_hook(self, parent):
+        """
+        Fetch conditional from last IfNode in parent's children
+        """
+        for child in reversed(parent.children):
+            if child.is_exec_node and child.PREFIX == 'if':
+                self.line = child.line
+                self.parse_condition()
+                break
+        else:
+            raise Node.ParseError("Missing if for ElseNode")
+
+
+    def render(self, context, indent):
+        if not self.eval_code(context, self.condition):
+            return super(ExecutionNode, self).render(context, indent)
+        else:
+            return ''
+
+ExecutionNodeRegistry.register(ElseNode)
+
 
 
 class ForNode(ExecutionNode):

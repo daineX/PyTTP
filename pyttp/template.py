@@ -79,6 +79,11 @@ class Template(object):
             elif self.is_exec_node(stripped_line):
                 prefix = stripped_line.split(' ')[0][1:]
                 node = ExecutionNodeRegistry.get_node_cls(prefix)(stripped_line)
+
+                #special treatment for ElseNode
+                if node.PREFIX == 'else': 
+                    node.parent_hook(closed_node)
+
             elif self.is_eval_node(stripped_line):
                 node = EvalNode(stripped_line)
             else:

@@ -160,7 +160,7 @@ class RenderTests(unittest.TestCase):
     %body
         -if foo == 'bar'
             bar
-        -if foo != 'bar'
+        -else
             .baz= foo
                 =foo
 """
