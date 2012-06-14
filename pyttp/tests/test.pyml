@@ -1,0 +1,11 @@
+%html
+    %body
+        #title.big.boxed= title
+            %img(src: '= link')
+            %p= title
+                bla
+                foo
+    
+        //everything we got in one line
+        %a.bold#link(href: '= link', target: "_blank")= greeting['obj'].en
+        blub
