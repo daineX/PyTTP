@@ -49,6 +49,17 @@ class Template(object):
         return line.lstrip(), indent
 
 
+    def load(self, f):
+        return open(f).read()
+
+
+    @classmethod
+    def load_and_render(cls, f, context):
+        template = cls()
+        markup = template.load(f)
+        return template.render(context, markup)
+
+
     def render(self, context, markup):
         tag_stack = [(Node(''), -1)]
         old_indent = None

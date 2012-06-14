@@ -1,5 +1,6 @@
 import unittest
 
+import os
 import sys
 sys.path.append("../..")
 
@@ -194,6 +195,25 @@ class RenderTests(unittest.TestCase):
         print rendered
         self.assertEqual(rendered, expected)
 
-if __name__ == "__main__":
 
-    unittest.main()        
+    def test_load(self):
+
+        class Greeting(object):
+            pass
+
+        greeting = Greeting()
+        greeting.en = lambda: "hello"
+
+        context = dict(title="Guten Tag",
+                       link="http://example.com",
+                       greeting=dict(obj=greeting),
+                       )
+
+        expected = '\n<html>\n    <body>\n        <div class="big boxed" id="title">Guten Tag \n            <img src="http://example.com" /> \n            <p>Guten Tag bla foo</p>\n        </div> \n        <a href="http://example.com" target="_blank" class="bold" id="link">hello</a> blub\n    </body>\n</html>'
+
+        rendered = ''.join(Template.load_and_render(os.path.join(os.path.dirname(__file__), 'test.pyml'), context))
+        self.assertEqual(rendered, expected)
+
+
+if __name__ == "__main__":
+    unittest.main()
