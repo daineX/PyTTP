@@ -79,6 +79,9 @@ class Template(object):
             stripped_line, indent = self.indentation_depth(line)
             stripped_line = self.handle_div(stripped_line)
 
+            if not stripped_line:
+                continue
+
             for closed_node, closed_indent in reversed(tag_stack):
                 if closed_indent >= indent:
                     tag_stack.pop()
