@@ -231,7 +231,6 @@ class RenderTests(unittest.TestCase):
                         Here we have some text
 """
         rendered = ''.join(self.template.render(context, markup))
-        print rendered
 
 if __name__ == "__main__":
     unittest.main()
