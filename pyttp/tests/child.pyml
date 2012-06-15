@@ -1,0 +1,6 @@
+-extends parent.pyml
+-placeholder head
+    %title Extending...
+-placeholder content
+    .content We are extending templates
+    -placeholder actual_content

@@ -1,0 +1,4 @@
+-extends child.pyml
+-placeholder actual_content
+    %b YAY
+    -placeholder foo

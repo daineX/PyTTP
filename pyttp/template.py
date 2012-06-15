@@ -1,8 +1,13 @@
+import os
 
 from .template_node import Node, EvalNode, TagNode, TextNode
 from .template_execution_node import ExecutionNodeRegistry
 
 class Template(object):
+
+
+    def __init__(self, search_path=None):
+        self.search_path = search_path
 
     class ParseError(Exception):
         pass
@@ -50,14 +55,75 @@ class Template(object):
 
 
     def load(self, f):
+        if self.search_path:
+            try:
+                return open(os.path.join(self.search_path, f)).read()
+            except IOError:
+                pass
         return open(f).read()
 
 
     @classmethod
-    def load_and_render(cls, f, context):
-        template = cls()
+    def load_and_render(cls, f, context, search_path=None):
+        template = cls(search_path)
         markup = template.load(f)
         return template.render(context, markup)
+
+
+    def _fill_placeholder(self, name, indent, placeholders):
+        new_lines = []
+        for placeholder_line in placeholders[name]:
+            if placeholder_line.lstrip().startswith("-placeholder"):
+                _, placeholder_name = placeholder_line.lstrip().split(' ', 1)
+                _, placeholder_indent = self.indentation_depth(placeholder_line)
+                new_lines += self._fill_placeholder(placeholder_name, placeholder_indent, placeholders)
+            else:
+                new_lines.append((' '*self.TAB_INDENT*indent) + placeholder_line)
+        return new_lines
+
+
+    def pre_process(self, markup, placeholders=None):
+
+        print markup
+        print placeholders
+
+        lines = markup.split("\n")
+        parent = None
+        if lines[0].startswith("-extends "):
+            _, f = lines[0].split(' ', 1)
+            parent = self.load(f)
+
+        new_lines = []
+        if placeholders:
+            parent_placeholders = placeholders
+        else:
+            parent_placeholders = {}
+        index = 0
+        while index < len(lines):
+            line = lines[index]
+            if line.lstrip().startswith("-placeholder "):
+                #import pdb; pdb.set_trace()
+                _, placeholder_name = line.lstrip().split(' ', 1)
+                _, placeholder_indent = self.indentation_depth(line)
+                #import pdb; pdb.set_trace()
+                if placeholders and placeholder_name in placeholders:
+                    new_lines += self._fill_placeholder(placeholder_name, placeholder_indent, placeholders)
+                else:
+                    placeholder_content = []
+                    for placeholder_line in lines[index+1:]:
+                        _, indent = self.indentation_depth(placeholder_line)
+                        if  indent <= placeholder_indent:
+                            break
+                        placeholder_content.append(placeholder_line)
+                        index += 1
+                    if placeholder_content:
+                        parent_placeholders[placeholder_name] = placeholder_content
+            else:
+                new_lines.append(line)
+            index += 1
+        if parent:
+            new_lines = self.pre_process(parent, parent_placeholders)
+        return new_lines
 
 
     def render(self, context, markup):
@@ -67,10 +133,8 @@ class Template(object):
         last_line_had_tag = False
         last_line_had_remainder = False
 
-
-        for line in markup.split("\n"):
-
-
+        pre_processed = self.pre_process(markup)
+        for line in pre_processed:
             if not line:
                 continue
             if self.is_comment(line):

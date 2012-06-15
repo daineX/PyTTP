@@ -11,7 +11,7 @@ from pyttp.template_node import Node, TagNode, TextNode
 class RenderTests(unittest.TestCase):
 
     def setUp(self):
-        self.template = Template()
+        self.template = Template(os.path.join(os.path.dirname(__file__)))
 
     def test_comment(self):
         comment_line = "//this is a comment"
@@ -147,9 +147,6 @@ class RenderTests(unittest.TestCase):
                        )
         rendered = ''.join(self.template.render(context, markup))
 
-        print markup
-        print '=' * 80
-        print rendered
         self.assertEqual(rendered, expected)
 
 
@@ -170,9 +167,6 @@ class RenderTests(unittest.TestCase):
 
 
         rendered = ''.join(self.template.render(context, markup))
-        print markup
-        print '=' * 80
-        print rendered
         self.assertEqual(rendered, expected)
 
 
@@ -190,9 +184,6 @@ class RenderTests(unittest.TestCase):
         """
         expected = '\n<html>\n    <body>\n        <div class="item">0</div>\n        <div class="item">1</div>\n        <div class="item">2</div>\n        <div class="item">3</div>\n        <div class="item4">Item is 4!</div>\n        <div class="item">5</div>\n        <div class="item">6</div>\n        <div class="item">7</div>\n        <div class="item">8</div>\n        <div class="item">9</div>\n    </body>\n</html>'
         rendered = ''.join(self.template.render(context, markup))
-        print markup
-        print '=' * 80
-        print rendered
         self.assertEqual(rendered, expected)
 
 
@@ -211,10 +202,16 @@ class RenderTests(unittest.TestCase):
 
         expected = '\n<html>\n    <body>\n        <div class="big boxed" id="title">Guten Tag \n            <img src="http://example.com" /> \n            <p>Guten Tag bla foo</p>\n        </div> \n        <a href="http://example.com" target="_blank" class="bold" id="link">hello</a> blub\n    </body>\n</html>'
 
-        rendered = ''.join(Template.load_and_render(os.path.join(os.path.dirname(__file__), 'test.pyml'), context))
+        rendered = ''.join(Template.load_and_render('test.pyml', context, os.path.join(os.path.dirname(__file__))))
         print rendered
         self.assertEqual(rendered, expected)
 
+
+    def test_pre_process(self):
+
+        context = {}
+        rendered = ''.join(Template.load_and_render('childchildchild.pyml', context, os.path.join(os.path.dirname(__file__))))
+        print rendered
 
 if __name__ == "__main__":
     unittest.main()

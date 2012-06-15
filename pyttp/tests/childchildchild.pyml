@@ -1,0 +1,3 @@
+-extends childchild.pyml
+-placeholder foo
+    .bar
