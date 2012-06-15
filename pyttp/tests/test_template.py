@@ -213,5 +213,25 @@ class RenderTests(unittest.TestCase):
         rendered = ''.join(Template.load_and_render('childchildchild.pyml', context, os.path.join(os.path.dirname(__file__))))
         self.assertEqual(rendered, expected)
 
+
+    def test_pre(self):
+        context = {}
+        markup = \
+"""
+%html
+    %body
+        -pre
+            //This is PyML
+            %html
+                %head
+                    -placeholder extend_head
+                %body
+                    .content
+                        %h1 title
+                        Here we have some text
+"""
+        rendered = ''.join(self.template.render(context, markup))
+        print rendered
+
 if __name__ == "__main__":
     unittest.main()
