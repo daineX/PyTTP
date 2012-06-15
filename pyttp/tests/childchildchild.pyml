@@ -1,3 +1,5 @@
 -extends childchild.pyml
 -placeholder foo
     .bar
+-placeholder head
+    %title Extending...
