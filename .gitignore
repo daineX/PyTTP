@@ -1,2 +1,9 @@
 *~
 *.pyc
+bin/
+lib/
+include/
+local
+build/
+dist/
+*.egg-info/
