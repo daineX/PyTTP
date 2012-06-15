@@ -1,0 +1,12 @@
+-extends base.pyml
+-placeholder extend_head
+    %title This is the shop page
+
+-placeholder content
+    .item_list
+        -for item in items
+            %p.item
+                .item_title
+                    = item.title
+                .item_price
+                    = item.price
