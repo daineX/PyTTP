@@ -1,6 +1,8 @@
 import string
 import urlparse
 
+from .template import Template
+
 class Http404(Exception):
     pass
 
@@ -91,6 +93,15 @@ def redirect_to(location):
     Short-hand for triggering a redirection.
     """
     raise Redirection(location)
+
+
+class TemplateResponse(ControllerResponse):
+
+    def __init__(self, template, context=None, status="200 OK", headers=None):
+        if not context:
+            context = {}
+        payload = ''.join(Template.load_and_render(template, context))
+        super(TemplateResponse, self).__init__(payload, status, headers)
 
 
 class Controller(object):
@@ -250,8 +261,9 @@ if __name__ == "__main__":
             return ControllerResponse("<html>This is the index page.<html>")
 
 
-import network, wsgi, sys
-port = int(sys.argv[1])
+if __name__ == "__main__":
+    import network, wsgi, sys
+    port = int(sys.argv[1])
 
-http = wsgi.WSGIListener(ControllerWSGIApp(TestController()), port, nThreads=4)
-http.serve()
+    http = wsgi.WSGIListener(ControllerWSGIApp(TestController()), port, nThreads=4)
+    http.serve()

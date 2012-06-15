@@ -20,7 +20,7 @@ class FileServe(object):
         if not os.path.exists(filename):
             filenameValid = False
         if not filenameValid:
-            print "Invalid File!"
+            print "Invalid File: %s" % filename
             status = "404 Not found"
             headers = [('Content-type', 'text/plain')]
             start_response(status, headers)

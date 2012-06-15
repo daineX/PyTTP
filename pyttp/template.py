@@ -5,14 +5,20 @@ from .template_execution_node import ExecutionNodeRegistry
 
 from .config import global_config
 
+
+
 class Template(object):
+
+    GLOBAL_SEARCH_PATH = None
 
 
     def __init__(self, search_path=None):
         if search_path:
             self.search_path = search_path
         else:
-            self.search_path = global_config.getvalue("TEMPLATE_SEARCH_PATH")
+            self.search_path = global_config.getValue("TEMPLATE_SEARCH_PATH")
+        if not self.search_path:
+            self.search_path = GLOBAL_SEARCH_PATH
 
     class ParseError(Exception):
         pass
@@ -61,11 +67,9 @@ class Template(object):
 
     def load(self, f):
         if self.search_path:
-            try:
                 return open(os.path.join(self.search_path, f)).read()
-            except IOError:
-                pass
-        return open(f).read()
+        else:
+            return open(f).read()
 
 
     @classmethod
