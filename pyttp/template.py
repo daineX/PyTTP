@@ -99,10 +99,9 @@ class Template(object):
         while index < len(lines):
             line = lines[index]
             if line.lstrip().startswith("-placeholder "):
-                #import pdb; pdb.set_trace()
                 _, placeholder_name = line.lstrip().split(' ', 1)
                 _, placeholder_indent = self.indentation_depth(line)
-                #import pdb; pdb.set_trace()
+
                 if placeholders and placeholder_name in placeholders:
                     new_lines += self._fill_placeholder(placeholder_name, placeholder_indent, placeholders)
                 else:
