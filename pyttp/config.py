@@ -14,10 +14,12 @@ class Config(object):
     
     alphanumeric = 'abcdefghijklmnopqrstuvwxyz_'
     
-    def __init__(self, filename = '~/.pyttp/config'):
+    def __init__(self, filename = '~/.pyttp/config', empty=False):
         
         self.filename = filename
         self.configDict = {}
+        if not empty:
+            self.load()
         
         
     def itemValidate(self, item):
@@ -85,13 +87,12 @@ class Config(object):
                 for lineno, line in enumerate(f.readlines()):
                     if line.startswith("#"):
                         continue
-                    items = line.split("=")
-                    item = items[0].strip(" ")
                     try:
-                        value = '='.join(items[1:])
+                        item, value = line.split("=", 1)
                     except ValueError:
                         raise ConfigException("Expected value in line %s:%s" % (self.filename, lineno + 1))
-                    value = value.rstrip("\n").strip(" ")
+                    item = item.strip()
+                    value = value.strip()
                     
                     try:
                         self.itemValidate(item)
@@ -107,20 +108,23 @@ class Config(object):
         except IOError:
             raise ConfigException("Failed to access file %s" % self.filename)            
             
-            
+try:
+    global_config = Config()
+except IOError:
+    global_config = Config(empty=True)
+
 if __name__ == "__main__":
     
-    config = Config()
+    config = Config(empty=True)
     try:
         config.addItem("Version", "0.0.1")
-        config.addItem("Name", "PyTTP")
+        config.addItem("Name", "PyTTP=cool")
         config.addItem("()Hello", "World")
     except Exception, e:
         print e
     config.dump()
     
     loadConfig = Config()
-    loadConfig.load()
-    assert loadConfig.getValue("Version") == "0.0.1"
-    assert loadConfig.getValue("Name") == "PyTTP"
+    assert loadConfig.getValue("Version") == "0.0.1", loadConfig.getValue("Version")
+    assert loadConfig.getValue("Name") == "PyTTP=cool", loadConfig.getValue("Name")
             
