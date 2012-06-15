@@ -84,9 +84,6 @@ class Template(object):
 
     def pre_process(self, markup, placeholders=None):
 
-        print markup
-        print placeholders
-
         lines = markup.split("\n")
         parent = None
         if lines[0].startswith("-extends "):

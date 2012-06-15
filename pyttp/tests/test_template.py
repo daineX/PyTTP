@@ -203,15 +203,15 @@ class RenderTests(unittest.TestCase):
         expected = '\n<html>\n    <body>\n        <div class="big boxed" id="title">Guten Tag \n            <img src="http://example.com" /> \n            <p>Guten Tag bla foo</p>\n        </div> \n        <a href="http://example.com" target="_blank" class="bold" id="link">hello</a> blub\n    </body>\n</html>'
 
         rendered = ''.join(Template.load_and_render('test.pyml', context, os.path.join(os.path.dirname(__file__))))
-        print rendered
         self.assertEqual(rendered, expected)
 
 
     def test_pre_process(self):
 
         context = {}
+        expected = '\n<html>\n    <head>\n        <title>Extending...</title>\n    </head> \n    <body>\n        <div class="content">We are extending templates</div> \n        <b>YAY</b> \n        <div class="bar" />\n    </body>\n</html>'
         rendered = ''.join(Template.load_and_render('childchildchild.pyml', context, os.path.join(os.path.dirname(__file__))))
-        print rendered
+        self.assertEqual(rendered, expected)
 
 if __name__ == "__main__":
     unittest.main()
