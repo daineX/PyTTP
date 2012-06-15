@@ -3,11 +3,16 @@ import os
 from .template_node import Node, EvalNode, TagNode, TextNode
 from .template_execution_node import ExecutionNodeRegistry
 
+from .config import global_config
+
 class Template(object):
 
 
     def __init__(self, search_path=None):
-        self.search_path = search_path
+        if search_path:
+            self.search_path = search_path
+        else:
+            self.search_path = global_config.getvalue("TEMPLATE_SEARCH_PATH")
 
     class ParseError(Exception):
         pass
