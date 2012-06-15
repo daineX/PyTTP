@@ -1,15 +1,7 @@
 -extends base.pyml
 
--placeholder head
+-placeholder extend_head
     %title This is the index page
 
 -placeholder content
-    .menu
-        %ul
-            %li Home
-            %li Products
-            %li Shop
-            %li Support
-    .content
-    .footer
-        .date= date
+    .date= date

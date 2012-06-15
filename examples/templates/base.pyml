@@ -3,4 +3,12 @@
         %link(rel: "stylesheet", type: "text/css", href: "/static/base.css")
         -placeholder extend_head
     %body
-        -placeholder content
+        .menu
+            %ul
+                %li Home
+                %li Products
+                %li Shop
+                %li Support
+        .content
+            -placeholder content
+        .footer
