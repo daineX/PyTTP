@@ -1,0 +1,11 @@
+-!!!
+%html
+    %body
+        %form(method: "POST", enctype: "multipart/form-data")
+            %label(for: "file") File
+            %input(type: "file", name: "file")
+            %br
+            %label(for: "description") Description
+            %input(type: "text" name: "description")
+            %br
+            %input(type: "submit")
