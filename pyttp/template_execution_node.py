@@ -145,3 +145,15 @@ class IncludeNode(ExecutionNode):
         return ''.join(Template.load_and_render(template, context, search_path))
 
 ExecutionNodeRegistry.register(IncludeNode)
+
+
+class DoctypeNode(ExecutionNode):
+
+    PREFIX ='!!!'
+
+    def render(self, context, indent):
+        return '<!DOCTYPE html>\n'
+
+ExecutionNodeRegistry.register(DoctypeNode)
+
+        

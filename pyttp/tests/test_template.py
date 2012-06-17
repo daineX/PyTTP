@@ -145,7 +145,7 @@ class RenderTests(unittest.TestCase):
                        link="http://example.com",
                        greeting=dict(obj=greeting),
                        )
-        rendered = ''.join(self.template.render(context, markup))
+        rendered = ''.join(self.template.render(markup, context))
 
         self.assertEqual(rendered, expected)
 
@@ -166,7 +166,7 @@ class RenderTests(unittest.TestCase):
         expected = '\n<html>\n    <body> \n        <div class="baz">baz baz</div>\n    </body>\n</html>'
 
 
-        rendered = ''.join(self.template.render(context, markup))
+        rendered = ''.join(self.template.render(markup, context))
         self.assertEqual(rendered, expected)
 
 
@@ -183,7 +183,7 @@ class RenderTests(unittest.TestCase):
                 .item4 Item is 4!
         """
         expected = '\n<html>\n    <body>\n        <div class="item">0</div>\n        <div class="item">1</div>\n        <div class="item">2</div>\n        <div class="item">3</div>\n        <div class="item4">Item is 4!</div>\n        <div class="item">5</div>\n        <div class="item">6</div>\n        <div class="item">7</div>\n        <div class="item">8</div>\n        <div class="item">9</div>\n    </body>\n</html>'
-        rendered = ''.join(self.template.render(context, markup))
+        rendered = ''.join(self.template.render(markup, context))
         self.assertEqual(rendered, expected)
 
 
@@ -230,7 +230,7 @@ class RenderTests(unittest.TestCase):
                         %h1 title
                         Here we have some text
 """
-        rendered = ''.join(self.template.render(context, markup))
+        rendered = ''.join(self.template.render(markup, context))
 
 
     def test_include(self):
@@ -238,6 +238,21 @@ class RenderTests(unittest.TestCase):
 
         expected = '\n<html>\n    <head>\n<link rel="stylesheet" type="text/css" href="/static/base.css" />\n    </head> \n    <body>\n        <div class="content" /> \n<a href="#top">back to top</a>\n    </body>\n</html>'
         rendered = ''.join(Template.load_and_render('extended_include.pyml', context, os.path.join(os.path.dirname(__file__))))
+        self.assertEqual(rendered, expected)
+
+
+    def test_doctype(self):
+        markup = """
+-!!!
+%html
+    %head
+        %title doctype
+    %body
+        .content
+            This is the content
+"""
+        expected = '<!DOCTYPE html>\n\n<html>\n    <head>\n        <title>doctype</title>\n    </head> \n    <body>\n        <div class="content">This is the content</div>\n    </body>\n</html>'
+        rendered = ''.join(self.template.render(markup))
         self.assertEqual(rendered, expected)
 
 if __name__ == "__main__":

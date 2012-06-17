@@ -73,10 +73,10 @@ class Template(object):
 
 
     @classmethod
-    def load_and_render(cls, f, context, search_path=None):
+    def load_and_render(cls, f, context=None, search_path=None):
         template = cls(search_path)
         markup = template.load(f)
-        return template.render(context, markup)
+        return template.render(markup, context)
 
 
     def _fill_placeholder(self, name, indent, placeholders):
@@ -131,7 +131,9 @@ class Template(object):
         return new_lines
 
 
-    def render(self, context, markup):
+    def render(self, markup, context=None):
+        if not context:
+            context = {}
 
         context.update({"_TEMPLATE_SEARCH_PATH": self.search_path})
         tag_stack = [(Node(''), -1)]
