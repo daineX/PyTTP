@@ -110,7 +110,7 @@ class Config(object):
             
 try:
     global_config = Config()
-except IOError:
+except ConfigException:
     global_config = Config(empty=True)
 
 if __name__ == "__main__":
