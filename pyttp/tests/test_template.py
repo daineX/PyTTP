@@ -236,7 +236,9 @@ class RenderTests(unittest.TestCase):
     def test_include(self):
         context = {}
 
+        expected = '\n<html>\n    <head>\n<link rel="stylesheet" type="text/css" href="/static/base.css" />\n    </head> \n    <body>\n        <div class="content" /> \n<a href="#top">back to top</a>\n    </body>\n</html>'
         rendered = ''.join(Template.load_and_render('extended_include.pyml', context, os.path.join(os.path.dirname(__file__))))
-        print rendered
+        self.assertEqual(rendered, expected)
+
 if __name__ == "__main__":
     unittest.main()
