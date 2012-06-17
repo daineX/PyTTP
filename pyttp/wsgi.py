@@ -109,12 +109,16 @@ class SocketFileWrapper(object):
         return rBuf
 
 
-    def readline(self):
+    def readline(self, max_char=None):
         while not '\n' in self.buf:
             s = self.sock.recv(1024)
             self.buf += s
             if s == '':
                 break
+            if len(self.buf) >= max_char:
+                rBuf = self.buf[:max_char]
+                self.buf = self.buf[max_char:]
+                return rBuf
         delim = self.buf.find('\n')+1
         if delim < 0:
             rBuf = self.buf

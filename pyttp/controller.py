@@ -1,7 +1,8 @@
+import cgi
 import string
 import urlparse
 
-from .template import Template
+from pyttp.template import Template
 
 class Http404(Exception):
     pass
@@ -25,7 +26,9 @@ def validate(**validator_mapping):
         def inner(*args, **kwargs):
             for kwarg in kwargs:
                 if kwarg in validator_mapping:
-                    validator_mapping[kwarg](kwargs[kwarg])
+                    new_val = validator_mapping[kwarg](kwargs[kwarg])
+                    if new_val is not None:
+                            kwargs[kwarg] = new_val
             return func(*args, **kwargs)
         return inner
     return decorator
@@ -97,10 +100,10 @@ def redirect_to(location):
 
 class TemplateResponse(ControllerResponse):
 
-    def __init__(self, template, context=None, status="200 OK", headers=None):
+    def __init__(self, template, context=None, status="200 OK", headers=None, search_path=None):
         if not context:
             context = {}
-        payload = ''.join(Template.load_and_render(template, context))
+        payload = ''.join(Template.load_and_render(template, context, search_path=search_path))
         super(TemplateResponse, self).__init__(payload, status, headers)
 
 
@@ -173,24 +176,64 @@ class Controller(object):
         def query_values(meth, parsed_query_item):
             """
             By default only the first value of queries is given to the
-            action. If the query key is in the "expect_list" a list we
-            we given instead. Query keys without value are treated as boolean.
+            action. If the query key is in the "expect_list" a list is
+            given instead. Query keys without value are treated as boolean.
             """
             key, value = parsed_query_item
             if hasattr(meth, "expect_list") and key in meth.expect_list:
-                return key, value
+                return key, [x.value for x in value]
             elif value[0]:
                 return key, value[0]
             else:
                 return key, True
 
+        def process_field_storage(meth, field_storage):
+            kwargs = {}
+            for key in field_storage:
+                mf = field_storage[key]
+                if hasattr(meth, "expect_list") and key in meth.expect_list:
+                    if isinstance(mf, list):
+                        value = []
+                        for m in mf:
+                            val = m.value
+                            if isinstance(val, str):
+                                val = val.decode("utf-8")
+                            value.append(val)
+                    else:
+                        value = [mf.value]
+                    kwargs[key] = value
+                else:
+                    if isinstance(mf, list):
+                        value = mf[0].value
+                    else:
+                        if mf.filename: # return files as-is
+                            value = mf
+                        else:
+                            value = mf.value
+                            if value == '':
+                                value = True
+                            if isinstance(value, str):
+                                try:
+                                    value = value.decode("utf-8")
+                                except UnicodeDecodeError:
+                                    pass
+                    kwargs[key] = value
+            return kwargs
+
         # delegate to method
         if callable(lookup) and hasattr(lookup, "exposed") and lookup.exposed:
+            import cgi
+            if request["REQUEST_METHOD"] == 'POST':
+                fp = request["wsgi.input"]
+            else:
+                fp = None
+            field_storage = cgi.FieldStorage(fp=fp,
+                                             environ=request,
+                                             keep_blank_values=True)
+
+
             args = path_parts[1:]
-            kwargs = dict(query_values(lookup, item)
-                          for item in urlparse.parse_qs(query_string,
-                                                        keep_blank_values=True)\
-                                                        .items())
+            kwargs = process_field_storage(lookup, field_storage)
             return lookup(request, *args, **kwargs)
 
         raise Http404
@@ -224,16 +267,23 @@ class ControllerWSGIApp(object):
 
 if __name__ == "__main__":
 
+    import os
 
     def validate_style(style):
         if any(i not in string.digits for i in style):
             raise ValidationException("style has to be digits only")
 
+    def are_int(the_list):
+        try:
+            return [int(x) for x in the_list]
+        except:
+            raise ValidationException("Expected list of integers")
 
     class SubController(Controller):
 
         @expose
         @expect_list("we_gunna_have_fun")
+        @validate(we_gunna_have_fun=are_int)
         def usage(self, request, we_gunna_have_fun=None):
             if we_gunna_have_fun is None:
                 we_gunna_have_fun = []
@@ -259,6 +309,14 @@ if __name__ == "__main__":
         @inject_header(('Content-Type', 'text/plain'))
         def index(self, request, **kwargs):
             return ControllerResponse("<html>This is the index page.<html>")
+
+    
+        @expose
+        def form(self, request, **kwargs):
+            if request["REQUEST_METHOD"] == 'POST':
+                return ControllerResponse(repr(kwargs))
+            else:
+                return TemplateResponse('form.pyml', search_path=os.path.join(os.path.dirname(__file__), "../examples/templates"))
 
 
 if __name__ == "__main__":
