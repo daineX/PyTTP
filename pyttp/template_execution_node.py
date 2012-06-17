@@ -142,7 +142,10 @@ class IncludeNode(ExecutionNode):
         from .template import Template
         _, template = self.line.split(' ', 1)
         search_path = context.get("_TEMPLATE_SEARCH_PATH")
-        return ''.join(Template.load_and_render(template, context, search_path))
+        return ''.join(Template.load_and_render(template,
+                                                context,
+                                                search_path=search_path,
+                                                base_indent=indent))
 
 ExecutionNodeRegistry.register(IncludeNode)
 

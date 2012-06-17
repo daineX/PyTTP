@@ -1,8 +1,6 @@
 import unittest
 
 import os
-import sys
-sys.path.append("../..")
 
 from pyttp.template import Template
 from pyttp.template_node import Node, TagNode, TextNode
@@ -202,7 +200,12 @@ class RenderTests(unittest.TestCase):
 
         expected = '\n<html>\n    <body>\n        <div class="big boxed" id="title">Guten Tag \n            <img src="http://example.com" /> \n            <p>Guten Tag bla foo</p>\n        </div> \n        <a href="http://example.com" target="_blank" class="bold" id="link">hello</a> blub\n    </body>\n</html>'
 
-        rendered = ''.join(Template.load_and_render('test.pyml', context, os.path.join(os.path.dirname(__file__))))
+        rendered = ''.join(
+                        Template.load_and_render(
+                            'test.pyml',
+                            context,
+                            search_path=os.path.join(os.path.dirname(__file__)))
+                        )
         self.assertEqual(rendered, expected)
 
 
@@ -210,7 +213,12 @@ class RenderTests(unittest.TestCase):
 
         context = {}
         expected = '\n<html>\n    <head>\n        <title>Extending...</title>\n    </head> \n    <body>\n        <div class="content">We are extending templates</div> \n        <b>YAY</b> \n        <div class="bar" />\n    </body>\n</html>'
-        rendered = ''.join(Template.load_and_render('childchildchild.pyml', context, os.path.join(os.path.dirname(__file__))))
+        rendered = ''.join(
+                        Template.load_and_render(
+                            'childchildchild.pyml',
+                            context,
+                            search_path=os.path.join(os.path.dirname(__file__)) )
+                        )
         self.assertEqual(rendered, expected)
 
 
@@ -236,8 +244,14 @@ class RenderTests(unittest.TestCase):
     def test_include(self):
         context = {}
 
-        expected = '\n<html>\n    <head>\n<link rel="stylesheet" type="text/css" href="/static/base.css" />\n    </head> \n    <body>\n        <div class="content" /> \n<a href="#top">back to top</a>\n    </body>\n</html>'
-        rendered = ''.join(Template.load_and_render('extended_include.pyml', context, os.path.join(os.path.dirname(__file__))))
+        expected = '\n<html>\n    <head>\n        <link rel="stylesheet" type="text/css" href="/static/base.css" />\n    </head> \n    <body>\n        <div class="content" /> \n        <a href="#top">back to top</a>\n    </body>\n</html>'
+        rendered = ''.join(
+                        Template.load_and_render(
+                           'extended_include.pyml',
+                           context,
+                           search_path=os.path.join(os.path.dirname(__file__)) )
+                        )
+
         self.assertEqual(rendered, expected)
 
 
