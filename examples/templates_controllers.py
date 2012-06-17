@@ -12,8 +12,10 @@ from pyttp.template import Template
 import pyttp.config as pyttp_config
 
 
-from redirector import RedirectorApp
-from fileserve import FileServe
+from pyttp.apps import (
+    FileServer,
+    Router
+    )
 
 pyttp_config.global_config.setValue("TEMPLATE_SEARCH_PATH", os.path.join(os.path.dirname(__file__), "templates"))
 
@@ -50,10 +52,10 @@ if __name__ == "__main__":
 
     port = int(sys.argv[1])
 
-    fileserve_app = FileServe(os.path.join(os.path.dirname(__file__), "static"))
+    fileserve_app = FileServer(os.path.join(os.path.dirname(__file__), "static"))
     controller_app = ControllerWSGIApp(RootController())
 
-    root_app = RedirectorApp([('/static/.+', fileserve_app, 1), ('/.*',  controller_app)])
+    root_app = Router([('/static/.+', fileserve_app, 1), ('/.*',  controller_app)])
     httpd = WSGIListener(root_app, port, nThreads=4)
     httpd.serve()
 
