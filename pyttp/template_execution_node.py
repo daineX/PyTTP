@@ -1,4 +1,7 @@
-from .template_node import Node
+from .template_node import (
+    Node,
+    TAB_INDENT,
+    )
 
 
 
@@ -129,3 +132,16 @@ class PreNode(ExecutionNode):
         return '\n' + '\n'.join(self._fetch_child_lines(self, indent))
 
 ExecutionNodeRegistry.register(PreNode)
+
+
+class IncludeNode(ExecutionNode):
+
+    PREFIX = 'include'
+
+    def render(self, context, indent):
+        from .template import Template
+        _, template = self.line.split(' ', 1)
+        search_path = context.get("_TEMPLATE_SEARCH_PATH")
+        return ''.join(Template.load_and_render(template, context, search_path))
+
+ExecutionNodeRegistry.register(IncludeNode)

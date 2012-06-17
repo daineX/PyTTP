@@ -1,0 +1,7 @@
+%html
+    %head
+        -include header.pyml
+        -placeholder extend_head
+    %body
+        .content
+        -include footer.pyml

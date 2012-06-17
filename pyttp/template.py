@@ -132,6 +132,8 @@ class Template(object):
 
 
     def render(self, context, markup):
+
+        context.update({"_TEMPLATE_SEARCH_PATH": self.search_path})
         tag_stack = [(Node(''), -1)]
         old_indent = None
         old_tag_name = None

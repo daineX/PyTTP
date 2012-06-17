@@ -232,5 +232,11 @@ class RenderTests(unittest.TestCase):
 """
         rendered = ''.join(self.template.render(context, markup))
 
+
+    def test_include(self):
+        context = {}
+
+        rendered = ''.join(Template.load_and_render('extended_include.pyml', context, os.path.join(os.path.dirname(__file__))))
+        print rendered
 if __name__ == "__main__":
     unittest.main()
