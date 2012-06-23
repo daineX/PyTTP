@@ -41,6 +41,12 @@ class ExecutionNodeRegistry(object):
         return cls.REGISTRY.lookup[prefix]
 
 
+def registered(node):
+    ExecutionNodeRegistry.register(node)
+    return node
+
+
+@registered
 class IfNode(ExecutionNode):
 
     PREFIX = 'if'
@@ -60,9 +66,8 @@ class IfNode(ExecutionNode):
         else:
             return ''
 
-ExecutionNodeRegistry.register(IfNode)
 
-
+@registered
 class ElseNode(IfNode):
 
     PREFIX = 'else'
@@ -86,10 +91,8 @@ class ElseNode(IfNode):
         else:
             return ''
 
-ExecutionNodeRegistry.register(ElseNode)
 
-
-
+@registered
 class ForNode(ExecutionNode):
 
     PREFIX = 'for'
@@ -111,9 +114,8 @@ class ForNode(ExecutionNode):
             res += super(ExecutionNode, self).render(ctx, indent)
         return res
 
-ExecutionNodeRegistry.register(ForNode)
 
-
+@registered
 class PreNode(ExecutionNode):
 
     PREFIX = 'pre'
@@ -128,9 +130,8 @@ class PreNode(ExecutionNode):
     def render(self, context, indent):
         return '\n' + '\n'.join(self._fetch_child_lines(self, indent))
 
-ExecutionNodeRegistry.register(PreNode)
 
-
+@registered
 class IncludeNode(ExecutionNode):
 
     PREFIX = 'include'
@@ -144,9 +145,8 @@ class IncludeNode(ExecutionNode):
                                                 search_path=search_path,
                                                 base_indent=indent))
 
-ExecutionNodeRegistry.register(IncludeNode)
 
-
+@registered
 class DoctypeNode(ExecutionNode):
 
     PREFIX ='!!!'
@@ -154,6 +154,4 @@ class DoctypeNode(ExecutionNode):
     def render(self, context, indent):
         return '<!DOCTYPE html>\n'
 
-ExecutionNodeRegistry.register(DoctypeNode)
 
-        
