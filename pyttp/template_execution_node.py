@@ -9,8 +9,8 @@ class ExecutionNode(Node):
 
     PREFIX = None
 
-    def __init__(self, line):
-        super(ExecutionNode, self).__init__(line)
+    def __init__(self, line, parent=None):
+        super(ExecutionNode, self).__init__(line, parent)
 
 
     @property
@@ -46,8 +46,8 @@ class IfNode(ExecutionNode):
     PREFIX = 'if'
 
 
-    def __init__(self, line):
-        super(IfNode, self).__init__(line)
+    def __init__(self, line, parent=None):
+        super(IfNode, self).__init__(line, parent)
         self.parse_condition()
 
     def parse_condition(self):
@@ -67,17 +67,14 @@ class ElseNode(IfNode):
 
     PREFIX = 'else'
 
-    def __init__(self, line):
-        ExecutionNode.__init__(self, line)
+    def __init__(self, line, parent=None):
+        ExecutionNode.__init__(self, line, parent)
+        self.parse_condition(parent)
 
-    def parent_hook(self, parent):
-        """
-        Fetch conditional from last IfNode in parent's children
-        """
+    def parse_condition(self, parent):
         for child in reversed(parent.children):
-            if child.is_exec_node and child.PREFIX == 'if':
-                self.line = child.line
-                self.parse_condition()
+            if child.is_exec_node and child.PREFIX == IfNode.PREFIX:
+                self.condition = child.condition
                 break
         else:
             raise Node.ParseError("Missing if for ElseNode")
@@ -97,8 +94,8 @@ class ForNode(ExecutionNode):
 
     PREFIX = 'for'
 
-    def __init__(self, line):
-        super(ForNode, self).__init__(line)
+    def __init__(self, line, parent=None):
+        super(ForNode, self).__init__(line, parent)
 
         _, self.var, in_, self.collection = self.line.split(' ', 3)
         assert(in_ == "in")

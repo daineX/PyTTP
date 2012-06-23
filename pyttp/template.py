@@ -162,21 +162,14 @@ class Template(object):
             closed_node, closed_indent = tag_stack[-1]
 
             if self.is_tag(stripped_line):
-                node = TagNode(stripped_line)
+                node = TagNode(stripped_line, closed_node)
             elif self.is_exec_node(stripped_line):
                 prefix = stripped_line.split(' ')[0][1:]
-                node = ExecutionNodeRegistry.get_node_cls(prefix)(stripped_line)
-
-                #special treatment for ElseNode
-                if node.PREFIX == 'else': 
-                    node.parent_hook(closed_node)
-
+                node = ExecutionNodeRegistry.get_node_cls(prefix)(stripped_line, closed_node)
             elif self.is_eval_node(stripped_line):
-                node = EvalNode(stripped_line)
+                node = EvalNode(stripped_line, closed_node)
             else:
-                node = TextNode(stripped_line)
-
-            closed_node.add_child(node)
+                node = TextNode(stripped_line, closed_node)
 
             if node.is_tag or node.is_exec_node:
                 tag_stack.append((node, indent))

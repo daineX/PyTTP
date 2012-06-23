@@ -14,9 +14,12 @@ class Node(object):
         pass
 
 
-    def __init__(self, line):
+    def __init__(self, line, parent=None):
         self.line = line
+        self.parent = parent
         self.children = []
+        if parent:
+            parent.add_child(self)
 
 
     def add_child(self, child):
@@ -70,8 +73,8 @@ class TagNode(Node):
     TAG_ID_RE = r"#(?P<id>\w+)"
     ATTR_RE = r"(?P<key>\w+):\s*'(?P<value>.+?)',?", r"(?P<key>\w+):\s*\"(?P<value>.+?)\",?"
 
-    def __init__(self, line):
-        super(TagNode, self).__init__(line)
+    def __init__(self, line, parent=None):
+        super(TagNode, self).__init__(line, parent)
 
         (self.tag_name, self.attrs,
          self.is_value_insert, self.remainder) = self._parse_tag()
