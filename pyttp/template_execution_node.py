@@ -149,9 +149,23 @@ class IncludeNode(ExecutionNode):
 @registered
 class DoctypeNode(ExecutionNode):
 
-    PREFIX ='!!!'
+    PREFIX = '!!!'
 
     def render(self, context, indent):
         return '<!DOCTYPE html>\n'
 
 
+@registered
+class WithNode(ExecutionNode):
+
+    PREFIX = 'with'
+
+    def __init__(self, line, parent=None):
+        super(WithNode, self).__init__(line, parent)
+        _, self.var, _as, self.value = self.line.split(' ', 3)
+        assert "as" == _as
+
+    def render(self, context, indent):
+        ctx = context.copy()
+        ctx.update({self.var: self.eval_code(context, self.value)})
+        return super(WithNode, self).render(ctx, indent)

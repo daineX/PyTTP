@@ -269,5 +269,21 @@ class RenderTests(unittest.TestCase):
         rendered = ''.join(self.template.render(markup))
         self.assertEqual(rendered, expected)
 
+
+    def test_with(self):
+        context = dict(title="Titel")        
+        markup = """
+-!!!
+%html
+    %head
+        -with title as "Real.Titel"
+            %title= title
+    %body
+        %h1= title
+"""
+        expected = '<!DOCTYPE html>\n\n<html>\n    <head>\n        <title>Real.Titel</title>\n    </head> \n    <body>\n        <h1>Titel</h1>\n    </body>\n</html>'
+        rendered = ''.join(self.template.render(markup, context))
+        self.assertEqual(rendered, expected)
+
 if __name__ == "__main__":
     unittest.main()
