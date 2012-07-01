@@ -244,7 +244,7 @@ class RenderTests(unittest.TestCase):
     def test_include(self):
         context = {}
 
-        expected = '\n<html>\n    <head>\n        <link rel="stylesheet" type="text/css" href="/static/base.css" />\n    </head> \n    <body>\n        <div class="content" /> \n        <a href="#top">back to top</a>\n    </body>\n</html>'
+        expected = '\n<html>\n    <head>\n        <link rel="stylesheet" type="text/css" href="/static/base.css" /> \n        <title>This is the title</title>\n    </head> \n    <body>\n        <div class="content" /> \n        <a href="#top">back to top</a>\n    </body>\n</html>'
         rendered = ''.join(
                         Template.load_and_render(
                            'extended_include.pyml',
@@ -284,6 +284,18 @@ class RenderTests(unittest.TestCase):
         expected = '<!DOCTYPE html>\n\n<html>\n    <head>\n        <title>Real.Titel</title>\n    </head> \n    <body>\n        <h1>Titel</h1>\n    </body>\n</html>'
         rendered = ''.join(self.template.render(markup, context))
         self.assertEqual(rendered, expected)
+
+    def test_indent_placeholder(self):
+        rendered = ''.join(
+                        Template.load_and_render(
+                           'placeholder_indentation.pyml',
+                           context=dict(),
+                           search_path=os.path.join(os.path.dirname(__file__)) )
+                        )
+
+        expected = '\n<a href="#top">back to top</a>\n<div class="foo" />'
+
+        self.assertEqual(expected, rendered)
 
 if __name__ == "__main__":
     unittest.main()

@@ -85,9 +85,9 @@ class Template(object):
             if placeholder_line.lstrip().startswith("-placeholder"):
                 _, placeholder_name = placeholder_line.lstrip().split(' ', 1)
                 _, placeholder_indent = self.indentation_depth(placeholder_line)
-                new_lines += self._fill_placeholder(placeholder_name, placeholder_indent, placeholders)
+                new_lines += self._fill_placeholder(placeholder_name, placeholder_indent + indent - self.TAB_INDENT, placeholders)
             else:
-                new_lines.append((' '*self.TAB_INDENT*indent) + placeholder_line)
+                new_lines.append((' '*indent) + placeholder_line[self.TAB_INDENT:])
         return new_lines
 
 

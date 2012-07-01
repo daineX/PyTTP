@@ -1,0 +1,3 @@
+-extends placeholder_inclusion.pyml
+-placeholder placeholder
+    .foo
