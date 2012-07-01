@@ -88,7 +88,6 @@ class DataBaseTypesEditor(object):
                 else:
                     attr = "id"
                 selection.add(option(value=refInst.id)(refInst.__getattr__(attr)) for refInst in ref if refInst.id not in refIDs)
-                selection.add(option(value=refInst.id)(refInst.__getattr__(attr)) for refInst in ref if refInst.id not in refIDs)
                 selection.add(option(value=refInst.id, selected="selected")(refInst.__getattr__(attr)) for refInst in ref if refInst.id in refIDs)
                 t.add(tr(td(refName), td(selection)))
             f.add(t)
