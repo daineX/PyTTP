@@ -92,7 +92,6 @@ class Template(object):
 
 
     def pre_process(self, markup, placeholders=None):
-
         lines = markup.split("\n")
         parent = None
         if lines[0].startswith("-extends "):
@@ -116,7 +115,8 @@ class Template(object):
                 else:
                     placeholder_content = []
                     for placeholder_line in lines[index+1:]:
-                        _, indent = self.indentation_depth(placeholder_line)
+                        stripped_line, indent = self.indentation_depth(placeholder_line)
+                        if not stripped_line: continue
                         if  indent <= placeholder_indent:
                             break
                         placeholder_content.append(placeholder_line)
