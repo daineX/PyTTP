@@ -159,6 +159,10 @@ class WSGIHandler(DefaultHandler):
     A hard-coded timeout of 5 secs is used for the socket connection.
     """
 
+    #FIXME WSGIHandler is not thread-safe
+    #TODO: in threaded mode state is shared between parallel requests
+    # this will cause chunked encoding to fail from time to time.
+
 
     def __init__(self, app, port, debug=None, logger=DummyLogger()):
         self.app = app
