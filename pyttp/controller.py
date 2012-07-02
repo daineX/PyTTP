@@ -253,9 +253,10 @@ def defaulthandler404(request):
 class ControllerWSGIApp(object):
 
 
-    def __init__(self, root, handler404=defaulthandler404):
+    def __init__(self, root, handler404=defaulthandler404, handler500=None):
         self.root = root
         self.handler404 = handler404
+        self.handler500 = handler500
 
     def __call__(self, environ, start_response):
         request = environ
@@ -268,6 +269,12 @@ class ControllerWSGIApp(object):
 
         except Redirection, redirect:
             response = RedirectionResponse(redirect.location)
+
+        except Exception, e:
+            if self.handler500:
+                response = self.handler500(e)
+            else:
+                raise
 
         status, headers = response.get_response()
         start_response(status, headers)
