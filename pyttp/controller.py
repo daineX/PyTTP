@@ -173,20 +173,6 @@ class Controller(object):
             return lookup._dispatch(request, path, query_string)
 
 
-        def query_values(meth, parsed_query_item):
-            """
-            By default only the first value of queries is given to the
-            action. If the query key is in the "expect_list" a list is
-            given instead. Query keys without value are treated as boolean.
-            """
-            key, value = parsed_query_item
-            if hasattr(meth, "expect_list") and key in meth.expect_list:
-                return key, [x.value for x in value]
-            elif value[0]:
-                return key, value[0]
-            else:
-                return key, True
-
         def process_field_storage(meth, field_storage):
             kwargs = {}
             for key in field_storage:
