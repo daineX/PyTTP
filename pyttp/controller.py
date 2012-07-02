@@ -239,12 +239,23 @@ class Controller(object):
         raise Http404
 
 
+def defaulthandler404(request):
+
+    path = request["PATH_INFO"]
+    query_string = request["QUERY_STRING"]
+    if query_string:
+        query_string = "?" + query_string
+
+    return ControllerResponse("URL %s%s not found!" % (path, query_string),
+                              "404 Not Found",
+                              [('Content-Type', 'text/plain')])
+
 class ControllerWSGIApp(object):
 
 
-    def __init__(self, root):
+    def __init__(self, root, handler404=defaulthandler404):
         self.root = root
-
+        self.handler404 = handler404
 
     def __call__(self, environ, start_response):
         request = environ
@@ -253,9 +264,8 @@ class ControllerWSGIApp(object):
         try:
             response = self.root._dispatch(request, path, query_string)
         except Http404:
-            response = ControllerResponse("Page was not found!",
-                                          "404 Not Found",
-                                          [('Content-Type', 'text/plain')])
+            response = self.handler404(request)
+
         except Redirection, redirect:
             response = RedirectionResponse(redirect.location)
 
