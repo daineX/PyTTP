@@ -159,11 +159,6 @@ class WSGIHandler(DefaultHandler):
     A hard-coded timeout of 5 secs is used for the socket connection.
     """
 
-    #FIXME WSGIHandler is not thread-safe
-    #TODO: in threaded mode state is shared between parallel requests
-    # this will cause chunked encoding to fail from time to time.
-
-
     def __init__(self, app, port, debug=None, logger=DummyLogger()):
         self.app = app
         self.port = port
@@ -330,8 +325,8 @@ class WSGIHandler(DefaultHandler):
 
                 self.exc_info = None
                 resp = Response(Status("HTTP/1.1", "500", "Internal Error"), headers, formatted_exception)
-                conn.sendall(str(resp))
                 try:
+                    conn.sendall(str(resp))
                     conn.close()
                     environ['wsgi.input'].close()
                 except:
@@ -353,16 +348,31 @@ class WSGIHandler(DefaultHandler):
             pass
 
 
+
+class WSGIHandlerDispatcher(object):
+
+    def __init__(self, app, port, debug, logger):
+        self.app = app
+        self.port = port
+        self.debug = debug
+        self.logger = logger
+
+
+    def __call__(self, conn, addr):
+        handler = WSGIHandler(self.app, self.port, self.debug, self.logger)
+        return handler(conn, addr)
+
+
 class WSGIListener(network.ThreadedSocketListener):
 
     def __init__(self, app, port, timeout = None, nThreads = None, logger=DummyLogger(), debug=None):
-        self.handler = WSGIHandler(app, port, debug, logger)
+        self.handler = WSGIHandlerDispatcher(app, port, debug, logger)
         network.ThreadedSocketListener.__init__(self, port, self.handler, timeout, nThreads)
 
 
 class WSGISSLListener(network.ThreadedSSLListener):
 
     def __init__(self, certFile, keyFile, sslVersion, app, port, timeout = None, nThreads = None, logger=DummyLogger(), debug=None):
-        self.handler = WSGIHandler(app, port, debug, logger)
+        self.handler = WSGIHandlerDispatcher(app, port, debug, logger)
         network.ThreadedSSLListener.__init__(self, certFile, keyFile, sslVersion, port, self.handler, timeout, nThreads)
 
