@@ -107,6 +107,22 @@ class TemplateResponse(ControllerResponse):
         super(TemplateResponse, self).__init__(payload, status, headers)
 
 
+
+class ControllerRequest(object):
+
+
+    def __init__(self, environ, args, kwargs):
+        self.ENVIRON = environ
+        self.PATHS = args
+        self.REQUEST = kwargs
+        if environ["REQUEST_METHOD"] == 'POST':
+            self.POST = kwargs
+        else:
+            self.GET = kwargs
+
+
+#TODO Form handling
+
 class Controller(object):
 
     """
@@ -146,13 +162,13 @@ class Controller(object):
     """
 
 
-    def _dispatch(self, request, path, query_string):
+    def _dispatch(self, environ, path, query_string):
         """
-        Dispatches the request on a certain path to either a sub-controller
+        Dispatches the environ on a certain path to either a sub-controller
         or a method.
         """
 
-        # get actio name
+        # get action name
         path = path.strip("/")
         path_parts = path.split("/")
         action = path_parts[0]
@@ -170,7 +186,7 @@ class Controller(object):
         if isinstance(lookup, Controller):
             # dispatch to sub-controller
             path = path[len(action):]
-            return lookup._dispatch(request, path, query_string)
+            return lookup._dispatch(environ, path, query_string)
 
 
         def process_field_storage(meth, field_storage):
@@ -209,18 +225,19 @@ class Controller(object):
         # delegate to method
         if callable(lookup) and hasattr(lookup, "exposed") and lookup.exposed:
             import cgi
-            if request["REQUEST_METHOD"] == 'POST':
-                fp = request["wsgi.input"]
+            if environ["REQUEST_METHOD"] == 'POST':
+                fp = environ["wsgi.input"]
             else:
                 fp = None
             field_storage = cgi.FieldStorage(fp=fp,
-                                             environ=request,
+                                             environ=environ,
                                              keep_blank_values=True)
 
 
             args = path_parts[1:]
             kwargs = process_field_storage(lookup, field_storage)
-            return lookup(request, *args, **kwargs)
+            request = ControllerRequest(environ, args, kwargs)
+            return lookup(request)
 
         raise Http404
 
@@ -245,20 +262,19 @@ class ControllerWSGIApp(object):
         self.handler500 = handler500
 
     def __call__(self, environ, start_response):
-        request = environ
         path = environ["PATH_INFO"]
         query_string = environ["QUERY_STRING"]
         try:
-            response = self.root._dispatch(request, path, query_string)
+            response = self.root._dispatch(environ, path, query_string)
         except Http404:
-            response = self.handler404(request)
+            response = self.handler404(environ)
 
         except Redirection, redirect:
             response = RedirectionResponse(redirect.location)
 
         except Exception, e:
             if self.handler500:
-                response = self.handler500(e)
+                response = self.handler500(environ, e)
             else:
                 raise
 

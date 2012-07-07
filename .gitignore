@@ -7,3 +7,4 @@ local
 build/
 dist/
 *.egg-info/
+PyTTP-0.0.1/
