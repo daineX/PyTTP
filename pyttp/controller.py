@@ -7,8 +7,6 @@ from pyttp.template import Template
 class Http404(Exception):
     pass
 
-class ValidationException(Exception):
-    pass
 
 def expect_list(*list_params):
     def decorator(func):
@@ -117,8 +115,10 @@ class ControllerRequest(object):
         self.REQUEST = kwargs
         if environ["REQUEST_METHOD"] == 'POST':
             self.POST = kwargs
+            self.GET = {}
         else:
             self.GET = kwargs
+            self.POST = {}
 
 
 #TODO Form handling
@@ -189,7 +189,7 @@ class Controller(object):
             return lookup._dispatch(environ, path, query_string)
 
 
-        def process_field_storage(meth, field_storage):
+        def process_field_storage(meth, field_storage, is_post):
             kwargs = {}
             for key in field_storage:
                 mf = field_storage[key]
@@ -212,7 +212,7 @@ class Controller(object):
                             value = mf
                         else:
                             value = mf.value
-                            if value == '':
+                            if not is_post and value == '':
                                 value = True
                             if isinstance(value, str):
                                 try:
@@ -227,15 +227,17 @@ class Controller(object):
             import cgi
             if environ["REQUEST_METHOD"] == 'POST':
                 fp = environ["wsgi.input"]
+                is_post = True
             else:
                 fp = None
+                is_post = False
             field_storage = cgi.FieldStorage(fp=fp,
                                              environ=environ,
                                              keep_blank_values=True)
 
 
             args = path_parts[1:]
-            kwargs = process_field_storage(lookup, field_storage)
+            kwargs = process_field_storage(lookup, field_storage, is_post)
             request = ControllerRequest(environ, args, kwargs)
             return lookup(request)
 
