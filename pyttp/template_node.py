@@ -1,5 +1,6 @@
 import re
 
+from pyttp.html import html_escape
 
 TAB_INDENT = 4
 
@@ -37,10 +38,12 @@ class Node(object):
     def is_exec_node(self):
         return False
 
-    def eval_code(self, context, markup):
+    def eval_code(self, context, markup, honor_autoescape=False):
         value = eval(markup, globals(), context)
         if callable(value):
             value = value()
+        if honor_autoescape and context.get("_autoescape"):
+            value = html_escape(value)
         return value
 
     def __repr__(self):
@@ -61,7 +64,7 @@ class TextNode(Node):
 class EvalNode(TextNode):
 
     def render(self, context, indent):
-        return unicode(self.eval_code(context, self.line[1:]))
+        return unicode(self.eval_code(context, self.line[1:], honor_autoescape=True))
 
 
 class TagNode(Node):
@@ -179,7 +182,7 @@ class TagNode(Node):
                 evaluated_attrs.append('%s="%s"' % (key, value))
             html.append(' '.join(evaluated_attrs))
         if eval_remainder and remainder:
-            remainder = self.eval_code(context, remainder.lstrip())
+            remainder = self.eval_code(context, remainder.lstrip(), honor_autoescape=True)
         if self.children or self.remainder:
             html.append(self._render_tag_end(one_line=False))
         else:
