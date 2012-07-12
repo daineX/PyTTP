@@ -276,7 +276,7 @@ class RenderTests(unittest.TestCase):
 -!!!
 %html
     %head
-        -with title as "Real.Titel"
+        -with title equals "Real.Titel"
             %title= title
     %body
         %h1= title

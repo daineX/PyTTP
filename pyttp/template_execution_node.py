@@ -162,8 +162,8 @@ class WithNode(ExecutionNode):
 
     def __init__(self, line, parent=None):
         super(WithNode, self).__init__(line, parent)
-        _, self.var, _as, self.value = self.line.split(' ', 3)
-        assert "as" == _as
+        _, self.var, _equals, self.value = self.line.split(' ', 3)
+        assert "equals" == _equals
 
     def render(self, context, indent):
         ctx = context.copy()
