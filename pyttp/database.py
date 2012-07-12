@@ -250,12 +250,12 @@ class DataBaseObj(object):
                 inserts.append('?')
                 values.append(value)
         query = query % (cls.__name__, ', '.join(names), ', '.join(inserts))
-        c = conn.cursor()
-        c.execute(query, tuple(values))
-        conn.commit()
+        with conn:
+            c = conn.cursor()
+            c.execute(query, tuple(values))
         if not getattr(inst, cls.key_name):
             key = list(c.execute("select last_insert_rowid();"))[0][0]
-            inst.fieldValues[cls.key_name] = key        
+            inst.fieldValues[cls.key_name] = key
         return inst
    
     @classmethod
