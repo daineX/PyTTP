@@ -180,6 +180,8 @@ class MetaDataBaseObj(type):
 
 class DataBaseObj(object):
     __metaclass__ = MetaDataBaseObj
+
+    _autocommit = False
     
     
     sqlMapping = {
@@ -200,11 +202,24 @@ class DataBaseObj(object):
     #key_autoinc = True
     #connObj = None
     
-    def __init__(self):
+    def __init__(self, **attrs):
         self.__dict__["fieldValues"] = {}
         for key, value in self.__class__.fieldTypes.items():
             self.fieldValues[key] = value()
-            
+        for name in attrs:
+            if name in self.__class__.fieldTypes and name != "cdate":
+                value = attrs[name]
+                if self.__class__.fieldTypes[name] == unicode:
+                    castValue = unicode(value.decode("utf-8"))
+                else:
+                    castValue = self.__class__.fieldTypes[name](value)
+
+                if name in self.__class__.restrictors:
+                    if not self.__class__.restrictors[name](castValue):
+                        raise DataBaseException("Invalid value %s for field \"%s\" ; failed restrictor %s" % (`castValue`, name, `self.__class__.restrictors[name]`))
+                self.fieldValues[name] = castValue
+        self.fieldValues["cdate"] = time.time()
+
             
     def __eq__(self, other):
         cls = self.__class__
@@ -220,39 +235,60 @@ class DataBaseObj(object):
     @classmethod
     def _setConnObj(cls, connObj):
         cls.connObj = connObj
-   
-    @classmethod
-    def new(cls, **attrs):
-        conn = cls.conn()
-        inst = cls()
-        #inst.setConnObj(connObj)
-        for name in attrs:
-            if name in cls.fieldTypes and name != "cdate":
-                value = attrs[name]
-                if cls.fieldTypes[name] == unicode:
-                    castValue = unicode(value.decode("utf-8"))
-                else:
-                    castValue = cls.fieldTypes[name](value)
 
-                if name in cls.restrictors:
-                    if not cls.restrictors[name](castValue):
-                        raise DataBaseException("Invalid value %s for field \"%s\" ; failed restrictor %s" % (`castValue`, name, `cls.restrictors[name]`))
-                inst.fieldValues[name] = castValue
-        inst.fieldValues["cdate"] = time.time()
+
+    def isSaved(self):
+        return bool(getattr(self, self.__class__.key_name))
+
+
+    def save(self):
+        if self.isSaved():
+            self.__class__.update(self)
+        else:
+            self.__class__.new(inst=self)
+
+    @property
+    def autocommit(self):
+        return self.__class__._autocommit
+
+
+    @classmethod
+    def update(cls, inst):
+        conn = cls.conn()
+        query = "update %s set %s where %s = ?"
+        names = []
+        inserts = []
+        values = []
+        for name, value in inst.fieldValues.items():
+            if name != cls.key_name:
+                names.append("%s = ?" % name)
+                values.append(value)
+        values.append(getattr(inst, cls.key_name))
+        query = query % (cls.__name__, ', '.join(names), cls.key_name)
+        c = conn.cursor()
+        c.execute(query, tuple(values))
+        conn.commit()
+
+
+    @classmethod
+    def new(cls, inst=None, **attrs):
+        conn = cls.conn()
+        if not inst:
+            inst = cls(**attrs)
 
         query = "insert into %s (%s) values (%s)"
         names = []
         inserts = []
         values = []
         for name, value in inst.fieldValues.items():
-            if getattr(inst, cls.key_name) or name != cls.key_name:
+            if name != cls.key_name:
                 names.append(name)
                 inserts.append('?')
                 values.append(value)
         query = query % (cls.__name__, ', '.join(names), ', '.join(inserts))
-        with conn:
-            c = conn.cursor()
-            c.execute(query, tuple(values))
+        c = conn.cursor()
+        c.execute(query, tuple(values))
+        conn.commit()
         if not getattr(inst, cls.key_name):
             key = list(c.execute("select last_insert_rowid();"))[0][0]
             inst.fieldValues[cls.key_name] = key
@@ -307,7 +343,8 @@ class DataBaseObj(object):
             if attr in cls.restrictors:
                 if not cls.restrictors[attr](castValue):
                     raise DataBaseException("Invalid value %s for field \"%s\" ; failed restrictor %s" % (`castValue`, attr, `cls.restrictors[attr]`))
-            self._dataBaseSetWrap(attr, castValue)
+            if self.autocommit:
+                self._dataBaseSetWrap(attr, castValue)
             self.fieldValues[attr] = castValue
         else:
             self.__dict__[attr] = value
@@ -740,11 +777,8 @@ if __name__ == "__main__":
         imgUser.setRef(img1)
     except:
         print "Image already set"
-        
-    idUser = users.new(id=666, name="The Beast", email="666@9thcircle.com")
-    
-    print users.select_id(666).show()
-    
+
+
     newUser = users.new(name="The new One", testIntArray=[1,2,3,4], email="noob@idk.net")
     print newUser.show()
     

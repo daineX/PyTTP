@@ -52,7 +52,15 @@ class TestDataBaseObjs(unittest.TestCase):
         user2 = users.new(name="Ipsum Lorems", email="test2@test.com")
         self.assertEqual(users.count(), 2)
         self.assertNotEqual(user1, user2)
-        
+
+    def testLazyCreation(self):
+        user1 = users(name="Ipsum Lorem", email="test3@test.com")
+        self.assertEqual(users.count(), 0)
+        self.assertEqual(user1.id, 0)
+        user1.save()
+        self.assertEqual(users.count(), 1)
+        self.assertEqual(user1.id, 1)
+
     def testDeletion(self):
         users.new(name="Ipsum Lorem", email="test1@test.com")
         users.new(name="Ipsum Lorem", email="test2@test.com")
@@ -79,7 +87,18 @@ class TestDataBaseObjs(unittest.TestCase):
             raise Exception("AttributeError was not raised!")
         except AttributeError:
             pass
-        
+
+        id = theUser.id
+        theUserAgain = users.select_id(id)
+        self.assertFalse(theUserAgain.name == "a new name")
+
+        theUser.save()
+
+        theUserAgain = users.select_id(id)
+        self.assertEqual(theUserAgain.name, "a new name")
+
+
+
     def testSetRef(self):
         imageUser = users.new(name="Image User", email="valid@email.org")
         theImage = images.new(size="800x600", file="imagefile.png")

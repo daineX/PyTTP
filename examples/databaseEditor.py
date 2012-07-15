@@ -35,7 +35,7 @@ class DataBaseTypesEditor(object):
                         if field in pquery:
                             value = pquery[field][0]
                             inst.__setattr__(field, value)
-                            
+                inst.save()
                 for ref in dbType.has_many:
                     refName = ref.__name__
                     if refName in pquery:
@@ -107,6 +107,7 @@ class DataBaseTypesEditor(object):
                     if field in pquery:
                         value = pquery[field][0]
                         inst.__setattr__(field, value)
+            inst.save()
             for ref in dbType.has_many:
                 refName = ref.__name__
                 if refName in pquery:
