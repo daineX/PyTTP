@@ -191,6 +191,10 @@ class WSGIHandler(DefaultHandler):
         Arguments:
         chunk -- chunked data to chunkify;
         """
+        try:
+            chunk = chunk.encode("utf-8")
+        except:
+            pass
         chunkLength = len(chunk)
         chunkSize = hex(chunkLength)[2:]
         return "%s\r\n%s\r\n" % (chunkSize, chunk)

@@ -210,7 +210,10 @@ class DataBaseObj(object):
             if name in self.__class__.fieldTypes and name != "cdate":
                 value = attrs[name]
                 if self.__class__.fieldTypes[name] == unicode:
-                    castValue = unicode(value.decode("utf-8"))
+                    if isinstance(value, unicode):
+                        castValue = value
+                    else:
+                        castValue = unicode(value.decode("utf-8"))
                 else:
                     castValue = self.__class__.fieldTypes[name](value)
 

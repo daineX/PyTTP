@@ -28,7 +28,7 @@ class Node(object):
 
 
     def render(self, context, indent):
-        return ''.join(x.render(context, indent) for x in self.children)
+        return u''.join(x.render(context, indent) for x in self.children)
 
     @property
     def is_tag(self):
@@ -64,7 +64,9 @@ class TextNode(Node):
 class EvalNode(TextNode):
 
     def render(self, context, indent):
-        return unicode(self.eval_code(context, self.line[1:], honor_autoescape=True))
+        res = self.eval_code(context, self.line[1:], honor_autoescape=True)
+
+        return unicode(res)
 
 
 class TagNode(Node):
@@ -147,9 +149,9 @@ class TagNode(Node):
                       )
                 raise Template.ParseError(msg)
         if classes:
-            attrs.append(('class', ' '.join(classes)))
+            attrs.append((u'class', u' '.join(classes)))
         if tag_id:
-            attrs.append(('id', tag_id))
+            attrs.append((u'id', tag_id))
         return name, attrs
 
 
@@ -157,12 +159,12 @@ class TagNode(Node):
 
         start = self._render_tag_start(context, indent, self.tag_name, self.attrs, self.remainder, self.is_value_insert)
 
-        childs = ''
-        close = ''
+        childs = u''
+        close = u''
         if self.remainder and self.children:
-            childs = ' '
+            childs = u' '
         if self.children:
-            childs += ' '.join(child.render(context, indent + 1) for child in self.children)
+            childs += u' '.join(child.render(context, indent + 1) for child in self.children)
         new_line = any(x.is_tag or x.is_exec_node for x in self.children)
         if self.children or self.remainder:
             close = self._render_closing_tag(indent, self.tag_name, new_line=new_line)
@@ -171,32 +173,36 @@ class TagNode(Node):
 
 
     def _render_tag_start(self, context, indent, tag_name, attrs, remainder, eval_remainder=False):
-        html = ['\n', ' ' * indent * TAB_INDENT]
-        html.append('<%s' % tag_name)
+        html = [u'\n', u' ' * indent * TAB_INDENT]
+        html.append(u'<%s' % tag_name)
         if attrs:
             html.append(' ')
             evaluated_attrs = []
             for key, value in attrs:
                 if value.startswith("="):
                     value = self.eval_code(context, value[1:].lstrip())
-                evaluated_attrs.append('%s="%s"' % (key, value))
-            html.append(' '.join(evaluated_attrs))
+                evaluated_attrs.append(u'%s="%s"' % (key, value))
+            html.append(u' '.join(evaluated_attrs))
         if eval_remainder and remainder:
-            remainder = self.eval_code(context, remainder.lstrip(), honor_autoescape=True)
+            res = self.eval_code(context, remainder.lstrip(), honor_autoescape=True)
+            try:
+                remainder = res.decode("utf-8")
+            except:
+                remainder = unicode(res)
         if self.children or self.remainder:
             html.append(self._render_tag_end(one_line=False))
         else:
             html.append(self._render_tag_end(one_line=True))
         if remainder:
             html.append(remainder)
-        return ''.join(html)
+        return u''.join(html)
 
 
     def _render_tag_end(self, one_line):
         if one_line:
-            return ' />'
+            return u' />'
         else:
-            return '>'
+            return u'>'
 
 
     def _render_closing_tag(self, indent, tag_name, new_line=False):
@@ -204,12 +210,12 @@ class TagNode(Node):
         res = []
         if new_line:
             res += ['\n', ' '*(TAB_INDENT*indent)]
-        res += ['</',
+        res += [u'</',
                 tag_name,
-                '>',
+                u'>',
               ]
 
-        return ''.join(res)
+        return u''.join(res)
 
     def __repr__(self):
 

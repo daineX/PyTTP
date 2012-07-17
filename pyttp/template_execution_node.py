@@ -64,7 +64,7 @@ class IfNode(ExecutionNode):
         if self.eval_code(context, self.condition):
             return super(ExecutionNode, self).render(context, indent)
         else:
-            return ''
+            return u''
 
 
 @registered
@@ -89,7 +89,7 @@ class ElseNode(IfNode):
         if not self.eval_code(context, self.condition):
             return super(ExecutionNode, self).render(context, indent)
         else:
-            return ''
+            return u''
 
 
 @registered
@@ -108,7 +108,7 @@ class ForNode(ExecutionNode):
         ctx = context.copy()
         collection = self.eval_code(context, self.collection)
 
-        res = ''
+        res = u''
         for value in collection:
             ctx.update({self.var: value})
             res += super(ExecutionNode, self).render(ctx, indent)
@@ -128,7 +128,7 @@ class PreNode(ExecutionNode):
         return lines
 
     def render(self, context, indent):
-        return '\n' + '\n'.join(self._fetch_child_lines(self, indent))
+        return u'\n' + u'\n'.join(self._fetch_child_lines(self, indent))
 
 
 @registered
@@ -140,7 +140,7 @@ class IncludeNode(ExecutionNode):
         from .template import Template
         _, template = self.line.split(' ', 1)
         search_path = context.get("_TEMPLATE_SEARCH_PATH")
-        return ''.join(Template.load_and_render(template,
+        return u''.join(Template.load_and_render(template,
                                                 context,
                                                 search_path=search_path,
                                                 base_indent=indent))
@@ -152,7 +152,7 @@ class DoctypeNode(ExecutionNode):
     PREFIX = '!!!'
 
     def render(self, context, indent):
-        return '<!DOCTYPE html>\n'
+        return u'<!DOCTYPE html>\n'
 
 
 @registered
