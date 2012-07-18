@@ -340,7 +340,10 @@ class DataBaseObj(object):
         if attr in self.fieldValues and attr != "cdate":
             cls = self.__class__
             if cls.fieldTypes[attr] == unicode:
-                castValue = unicode(value.decode("utf-8"))
+                if isinstance(value, unicode):
+                    castValue = value
+                else:
+                    castValue = unicode(value.decode("utf-8"))
             else:
                 castValue = cls.fieldTypes[attr](value)
             if attr in cls.restrictors:
