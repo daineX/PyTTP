@@ -92,7 +92,7 @@ class DataBaseTypesEditor(object):
                 t.add(tr(td(refName), td(selection)))
             f.add(t)
             f.add(input(type="submit"))
-            return blank(h1(' '.join(("edit", name, str(inst.id)))), f)
+            return blank(h1(' '.join(("edit", name, unicode(inst.id)))), f)
         return blank()
 
 
@@ -195,7 +195,7 @@ class DataBaseTypesEditor(object):
             
             row = tr()
             for field in dbType.fieldTypes:
-                value = str(inst.__getattr__(field))
+                value = unicode(inst.__getattr__(field))
                 if len(value) > 50:
                     value = value[:47] + "..."
                 row .add(td(value))
@@ -235,15 +235,18 @@ class DataBaseTypesEditor(object):
         if pathValid:
             status = "200 OK"
             headers = [("Content-Type", "text/xml; charset=UTF-8")]
-            yield str(XHTML10DTD())
+            yield unicode(XHTML10DTD())
             src = \
             html(
+                head(
+                    meta(charset="UTF-8")
+                ),
                 body(
                     self.menu(),
                     innerhtml
                 )
             )
-            yield str(src)
+            yield src.toStr().decode("utf-8")
             
             
 
