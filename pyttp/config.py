@@ -26,16 +26,10 @@ class Config(object):
         for letter in item:
             if letter.lower() not in self.alphanumeric:
                 raise ConfigException("Invalid symbol in item: %s" % letter.encode("string_escape"))
-            
-    def valueValidate(self, value):
-        for letter in value:
-            if letter == '\n':
-                raise ConfigException("Found \\n in value.")
-        
-        
+
+
     def addItem(self, item, value):
         self.itemValidate(item)
-        self.valueValidate(value)
         self.configDict[item] = value
         
     def delItem(self, item, value):

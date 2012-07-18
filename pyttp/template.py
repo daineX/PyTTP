@@ -3,7 +3,7 @@ import os
 from .template_node import Node, EvalNode, TagNode, TextNode
 from .template_execution_node import ExecutionNodeRegistry
 
-from .config import global_config
+from .config import global_config, ConfigException
 
 
 
@@ -19,6 +19,11 @@ class Template(object):
             self.search_path = global_config.getValue("TEMPLATE_SEARCH_PATH")
         if not self.search_path:
             self.search_path = GLOBAL_SEARCH_PATH
+
+        try:
+            self.context_processors = global_config.getValue("TEMPLATE_CONTEXT_PROCESSORS")
+        except ConfigException:
+            self.context_processors = []
 
     class ParseError(Exception):
         pass
@@ -134,6 +139,9 @@ class Template(object):
     def render(self, markup, context=None, base_indent=0):
         if not context:
             context = {}
+
+        for processor in self.context_processors:
+            context.update(processor())
 
         context.update({"_TEMPLATE_SEARCH_PATH": self.search_path})
         tag_stack = [(Node(''), -1)]
