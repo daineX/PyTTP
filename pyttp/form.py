@@ -77,6 +77,12 @@ class TextAreaField(Field):
         return '<textarea name="%s" id="%s">%s</textarea>' % (self.name, self.id,
             html_escape(self.raw_value))
 
+
+class FileField(Field):
+
+    def render(self):
+        return '<input name="%s" id="%s" type="file" />' % (self.name, self.id)
+
 class Bunch(dict):
 
     def __getattr__(self, value):
