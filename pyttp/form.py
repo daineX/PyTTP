@@ -83,6 +83,13 @@ class FileField(Field):
     def render(self):
         return '<input name="%s" id="%s" type="file" />' % (self.name, self.id)
 
+
+class PasswordField(Field):
+
+    def render(self):
+        return '<input name="%s" id="%s" type="password" />' % (self.name, self.id)
+
+
 class Bunch(dict):
 
     def __getattr__(self, value):
