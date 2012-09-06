@@ -170,13 +170,3 @@ class WithNode(ExecutionNode):
         ctx.update({self.var: self.eval_code(context, self.value)})
         return super(WithNode, self).render(ctx, indent)
 
-
-@registered
-class AutoEscapeNode(WithNode):
-
-    PREFIX = 'autoescape'
-
-    def __init__(self, line, parent=None):
-        super(WithNode, self).__init__(line, parent)        
-        self.var = '_autoescape'
-        self.value = 'True'

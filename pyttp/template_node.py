@@ -42,7 +42,7 @@ class Node(object):
         value = eval(markup, globals(), context)
         if callable(value):
             value = value()
-        if honor_autoescape and context.get("_autoescape"):
+        if honor_autoescape:
             value = html_escape(value)
         return value
 
@@ -65,7 +65,6 @@ class EvalNode(TextNode):
 
     def render(self, context, indent):
         res = self.eval_code(context, self.line[1:], honor_autoescape=True)
-
         return unicode(res)
 
 
