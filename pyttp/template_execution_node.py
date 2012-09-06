@@ -170,3 +170,15 @@ class WithNode(ExecutionNode):
         ctx.update({self.var: self.eval_code(context, self.value)})
         return super(WithNode, self).render(ctx, indent)
 
+@registered
+class UnescapeNode(ExecutionNode):
+
+    PREFIX = 'unescaped'
+
+    def __init__(self, line, parent=None):
+        super(UnescapeNode, self).__init__(line, parent)
+        _, self.var = self.line.split(' ', 2)
+
+    def render(self, context, indent):
+        value = self.eval_code(context, self.var, honor_autoescape=False)
+        return u'\n' + u' '*4*indent + value
