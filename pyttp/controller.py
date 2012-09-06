@@ -1,4 +1,5 @@
 import cgi
+import Cookie
 import string
 import urlparse
 
@@ -63,6 +64,15 @@ class ControllerResponse(object):
     def get_payload(self):
         return self.payload
 
+    def set_cookie(self, key, value, path="/", domain="", expires=""):
+        cookie = Cookie.SimpleCookie()
+        cookie[key] = value
+        cookie[key]["path"] = path
+        cookie[key]["domain"] = domain
+        cookie[key]["expires"] = expires
+        header_value = cookie.output(header="").lstrip()
+        self.headers.append(("Set-Cookie", header_value))
+
 
 class EmptyResponse(ControllerResponse):
 
@@ -119,6 +129,8 @@ class ControllerRequest(object):
         else:
             self.GET = kwargs
             self.POST = {}
+
+        self.COOKIES = Cookie.SimpleCookie(environ.get("HTTP_COOKIE", {}))
 
 
 #TODO Form handling
