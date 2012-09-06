@@ -15,5 +15,14 @@ pyttp/logger.py: names says it all
 pyttp/helpers.py: some helpers for parsing and uploading
 pyttp/plugin.py: base class for a plugin mechanism
 pyttp/timeout.py: helper for dealing with potential deadlocks
-pyttp/config.py: ugly brother to ConfigParser - no really used
-exmaples/: some example WSGI-apps; will only run if pyttp module is in path
+pyttp/config.py: ugly brother to ConfigParser - not really used
+pyttp/controller.py: Django-esque View/Controller thing
+pyttp/template.py: Template engine which uses a HAML-like syntax
+pyttp/template_node.py: base template node classing used in parsing
+pyttp/template_execution_node.py: special template nodes
+pyttp/apps.py: useful WSGI apps
+pyttp/forms.py: form handling
+pyttp/validators.py: validators for said forms
+
+
+examples/: some example WSGI-apps; will only run if pyttp module is in path
