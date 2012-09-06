@@ -641,7 +641,17 @@ class DataBaseObj(object):
         tableName = cls.__name__
         query = template % (tableName, cond)
         return list(cls.conn().execute(query, values))[0][0]
-        
+
+
+    @classmethod
+    def get_by(cls, dict_):
+        cond = ' and '.join('%s = ?' % key for key in dict_.keys())
+        values = tuple(dict_.values())
+        try:
+            return cls.select_cond(cond, values).next()
+        except StopIteration:
+            return None
+
     @classmethod
     def select_sort(cls, row, asc=True, cond = "", limit="", offset="", values = tuple()):
         if asc:
@@ -777,6 +787,9 @@ if __name__ == "__main__":
 
     imgUser = users.new(name="I has a Image", email="image@pyttp.net")
     img1 = images.new(size="800x600", file="avatar.jpeg")
+
+    img1 = images.get_by(dict(size="800x600", file="avatar.jpeg"))
+    assert img1
     
     imgUser.setRef(img1)
     try:
