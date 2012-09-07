@@ -136,6 +136,15 @@ class TestDataBaseObjs(unittest.TestCase):
         arrayUser.testIntArray = theArray
         for i, item in enumerate(arrayUser.testIntArray):
             self.assertEqual(theArray[i], item)
+
+    def test_get_by(self):
+
+        user = users(name="user1", email="valid@email.org")
+        user.save()
+
+        user_again = users.get_by(name="user1", email="valid@email.org")
+        self.assertTrue(bool(user_again))
+        self.assertEqual(user, user_again)
             
 
         

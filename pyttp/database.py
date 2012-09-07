@@ -86,7 +86,7 @@ class DataBaseArray(DataBaseType):
         return strRepr
         
     def toPy(self, strRepr):
-        return [self.pyType(entry) for entry in strRepr.split('\0')]
+        return [self.pyType(entry) for entry in strRepr.split('\0') if entry]
 
 class DataBaseDate(DataBaseType):
     
@@ -644,9 +644,9 @@ class DataBaseObj(object):
 
 
     @classmethod
-    def get_by(cls, dict_):
-        cond = ' and '.join('%s = ?' % key for key in dict_.keys())
-        values = tuple(dict_.values())
+    def get_by(cls, **kwargs):
+        cond = ' and '.join('%s = ?' % key for key in kwargs.keys())
+        values = tuple(kwargs.values())
         try:
             return cls.select_cond(cond, values).next()
         except StopIteration:
@@ -788,7 +788,7 @@ if __name__ == "__main__":
     imgUser = users.new(name="I has a Image", email="image@pyttp.net")
     img1 = images.new(size="800x600", file="avatar.jpeg")
 
-    img1 = images.get_by(dict(size="800x600", file="avatar.jpeg"))
+    img1 = images.get_by(size="800x600", file="avatar.jpeg")
     assert img1
     
     imgUser.setRef(img1)
