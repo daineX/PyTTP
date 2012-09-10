@@ -108,8 +108,10 @@ class TestDataBaseObjs(unittest.TestCase):
     def testDoubleSetRef(self):
         imageUser = users.new(name="Image User", email="valid@email.org")
         theImage = images.new(size="800x600", file="imagefile.png")
+        anotherImag = images.new(size="700x400", file="imagefile.jpg")
         imageUser.setRef(theImage)
-        self.assertRaises(db.DataBaseException, imageUser.setRef, theImage)
+        imageUser.setRef(anotherImag)
+        self.assertEqual(imageUser.getRef(images), anotherImag)
         
     def testDeleteRef(self):
         imageUser = users.new(name="Image User", email="valid2@email.org")

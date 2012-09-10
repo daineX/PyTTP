@@ -361,24 +361,27 @@ class DataBaseObj(object):
         ref = inst.__class__
         cls = self.__class__
         if ref in self.__class__.has_many:
-            if ref in self.__class__.singular_refs:
-                if self.hasRef(inst):
-                    raise DataBaseException("Reference already set!")
-
-            inst_id = getattr(inst, ref.key_name)
-            self_id = getattr(self, cls.key_name)
-            template = '''insert into %s (%s, %s) values (?, ?)'''
-            tableName = cls.__name__ + "_to_" + ref.__name__
             clsID = "%s_id" % (cls.__name__)
             refID = "%s_id" % (ref.__name__)
+            self_id = getattr(self, cls.key_name)
+            inst_id = getattr(inst, ref.key_name)            
+            tableName = cls.__name__ + "_to_" + ref.__name__
 
-            query = template % (tableName, clsID, refID)
-            cls.conn().execute(query, (self_id, inst_id))
+            set_template = '''insert into %(tableName)s (%(clsID)s, %(refID)s) values (?, ?)'''
+            valueTuple = (self_id, inst_id)
+            if ref in self.__class__.singular_refs:
+                template = '''select count(*) from %s where %s = ?'''
+                query = template % (tableName, clsID)
+                res = list(cls.conn().execute(query, (self_id,)))
+                if res[0]['count(*)']:
+                    set_template = '''update %(tableName)s set %(refID)s = ? where %(clsID)s = ?'''
+                    valueTuple = (inst_id, self_id)
+            query = set_template % dict(tableName=tableName, refID=refID, clsID=clsID)
+            cls.conn().execute(query, valueTuple)
             cls.conn().commit()
-
         else:
             raise DataBaseException("Unknown ref type")
-        
+
     def hasRef(self, inst):
         if not isinstance(inst, DataBaseObj):
             raise DataBaseException("Reference is not of type DataBaseObj!")
@@ -450,6 +453,9 @@ class DataBaseObj(object):
         query = template % (fields, tableName, refTableName, clsID, refID, refKey)
         for row in cls.conn().execute(query,(instID,)):
             yield ref.fromAttrs(**row)
+
+    def getRef(self, ref):
+        return self.getRefs(ref).next()
     
     def getRefCount(self, ref):
         if ref in self.__class__.ref_alias:
@@ -677,6 +683,9 @@ class DataBaseObj(object):
     def select_creation(cls, asc=True, cond = "", limit="", offset="", values = tuple()):
         for inst in cls.select_sort("cdate", asc, cond, limit, offset, values):
             yield inst
+
+    def __eq__(self, other):
+        return self.id == other.id
         
 
 if __name__ == "__main__":
