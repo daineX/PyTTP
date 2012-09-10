@@ -604,10 +604,18 @@ class DataBaseObj(object):
     
     @classmethod
     def select_cond(cls, cond, values = tuple()):
-        query = "select * from %s where %s" % (cls.__name__, cond)
-        for row in cls.conn().execute(query, values):
+        value_list = []
+        for val in values:
+            try:
+                val = val.decode('utf-8')
+            except:
+                pass
+            value_list.append(val)
+
+        query = u"select * from %s where %s" % (cls.__name__, cond)
+        for row in cls.conn().execute(query, tuple(value_list)):
             yield cls.fromAttrs(**row)
-            
+
     @classmethod
     def select_id(cls, id):
         query = "select * from %s where %s=?" % (cls.__name__, cls.key_name)
