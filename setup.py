@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name = "PyTTP",
-    version = "0.1.0",
+    version = "0.1.1",
     author = "Paul Seidel",
     author_email = "puseidel@gmail.com",
     description = ("Small and dirty WSGI-compliant server written entirely in Python"),
