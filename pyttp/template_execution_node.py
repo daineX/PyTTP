@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from .template_node import (
     Node,
     TAB_INDENT,
@@ -170,6 +172,7 @@ class WithNode(ExecutionNode):
         ctx.update({self.var: self.eval_code(context, self.value)})
         return super(WithNode, self).render(ctx, indent)
 
+
 @registered
 class UnescapeNode(ExecutionNode):
 
@@ -182,3 +185,15 @@ class UnescapeNode(ExecutionNode):
     def render(self, context, indent):
         value = self.eval_code(context, self.var, honor_autoescape=False)
         return u'\n' + u' '*4*indent + value
+
+
+@registered
+class FormatDateNode(ExecutionNode):
+
+    PREFIX = 'format_date'
+
+    def render(self, context, indent):
+        _, format_, remainder = self.line.split('"')
+        value = self.eval_code(context, remainder.strip())
+        dt = datetime.fromtimestamp(value)
+        return unicode(dt.strftime(format_))
