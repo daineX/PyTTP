@@ -4,17 +4,17 @@
 import types
 
 html_escape_table = {
-    "&": "&amp;",
-    '"': "&quot;",
-    "'": "&apos;",
-    ">": "&gt;",
-    "<": "&lt;",
+    u"&": u"&amp;",
+    u'"': u"&quot;",
+    u"'": u"&apos;",
+    u">": u"&gt;",
+    u"<": u"&lt;",
     }
 
 def html_escape(text):
     """Produce entities within text."""
     if isinstance(text, str) or isinstance(text, unicode):
-        return "".join(html_escape_table.get(c,c) for c in text)
+        return u"".join(html_escape_table.get(c,c) for c in text)
     else:
         return str(text)
 
@@ -22,11 +22,11 @@ def html_escape(text):
 
 class Tag(object):
     
-    name = ''
-    ldel = "<"
-    rdel = ">"
-    edel = "/>"
-    sdel = "</"
+    name = u''
+    ldel = u"<"
+    rdel = u">"
+    edel = u"/>"
+    sdel = u"</"
     doEscape = True
     
     def __init__(self, *childs, **attributes):
@@ -59,6 +59,9 @@ class Tag(object):
                 self.childs.append(item)
         
     def __str__(self):
+        return str(self.toStr())
+
+    def __unicode__(self):
         return self.toStr()
         
     def toStr(self, depth=0):
@@ -66,21 +69,27 @@ class Tag(object):
             attributeStr = []
             for attr, value in self.attributes.items():
                 if value is not None:
-                    attributeStr.append('%s="%s"' % (attr, value))
+                    attributeStr.append(u'%s="%s"' % (attr, value))
                 else:
-                    attributeStr.append('%s="%s"' % (attr, attr))
+                    attributeStr.append(u'%s="%s"' % (attr, attr))
             attributeStr = self.ldel+self.name+" "+' '.join(attributeStr)
         else:
             attributeStr = self.ldel+self.name
         #self.attributes = {}
         lastIsTag = True
-        childStr = ''
+        childStr = u''
         if not len(self.childs):
-            return (attributeStr+self.edel+'\n')
+            return (attributeStr+self.edel+u'\n')
         for x in self.childs:
             if not isinstance(x, Tag):
-                if isinstance(x, unicode):
-                    x = x.encode("utf-8")
+                if isinstance(x, str):
+                    try:
+                        x = x.decode("utf-8")
+                    except:
+                        pass
+                else:
+                    x = unicode(x)
+                assert isinstance(x, unicode)
                 if self.doEscape:
                     childStr += html_escape(x)
                 else:
@@ -89,21 +98,18 @@ class Tag(object):
             else:
                 if lastIsTag:
                     if isinstance(x, blank):
-                        childStr += ('  '*(depth+1))+x.toStr(depth+1)
+                        childStr += (u'  '*(depth+1))+x.toStr(depth+1)
                     else:
-                        childStr += ('\n'+'  '*(depth+1))+x.toStr(depth+1)
+                        childStr += (u'\n'+u'  '*(depth+1))+x.toStr(depth+1)
                 else:
                     childStr += x.toStr(depth+1)                    
 
                 lastIsTag = True
         if lastIsTag:
-            endStr = ('  '*depth)+self.sdel+self.name+self.rdel+'\n'
+            endStr = (u'  '*depth)+self.sdel+self.name+self.rdel+u'\n'
         else:
-            endStr = self.sdel+self.name+self.rdel+'\n'
-        #childStr = ''.join([html_escape(x), x.toStr(depth+1)][isinstance(x, str)] for x in self.childs)
-        #self.childs = []
-
-        return (attributeStr +self.rdel+ childStr + endStr).replace("\n\n", "\n")
+            endStr = self.sdel+self.name+self.rdel+u'\n'
+        return (attributeStr +self.rdel+ childStr + endStr).replace(u"\n\n", u"\n")
         
     def copy(self):
         return self.__class__(*tuple(self.childs), **self.attributes)
@@ -117,7 +123,7 @@ class Comment(object):
         return str(self)
         
     def __str__(self):
-        return "<!-- %s -->" % (self.content,)
+        return u"<!-- %s -->" % (self.content,)
         
 class DTD(object):
 
