@@ -119,11 +119,11 @@ class TemplateResponse(ControllerResponse):
 class ControllerRequest(object):
 
 
-    def __init__(self, environ, args, kwargs):
+    def __init__(self, environ, kwargs):
         self.ENVIRON = environ
-        self.PATHS = args
+        self.REQUEST_METHOD = environ["REQUEST_METHOD"]
         self.REQUEST = kwargs
-        if environ["REQUEST_METHOD"] == 'POST':
+        if self.REQUEST_METHOD == 'POST':
             self.POST = kwargs
             self.GET = {}
         else:
@@ -250,8 +250,8 @@ class Controller(object):
 
             args = path_parts[1:]
             kwargs = process_field_storage(lookup, field_storage, is_post)
-            request = ControllerRequest(environ, args, kwargs)
-            return lookup(request)
+            request = ControllerRequest(environ, kwargs)
+            return lookup(request, *args)
 
         raise Http404
 

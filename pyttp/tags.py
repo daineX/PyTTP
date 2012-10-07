@@ -66,6 +66,26 @@ class Tag(DataBaseObj):
                 yield cls_obj.select_id(tag.obj_id)
 
 
+    @classmethod
+    def get_tag_cloud(cls, cls_spec=None, limit=None):
+        if cls_spec:
+            tags = cls.select_cond("cls_spec = ?", (cls_spec,))
+        else:
+            tags = list(cls)
+
+        counts = {}
+        for tag in tags:
+            if tag.name in counts:
+                counts[tag.name] += 1
+            else:
+                counts[tag.name] = 1
+
+        counts = sorted([(tag, count) for tag, count in counts.items()], key= lambda x: x[1], reverse=True)
+        if limit:
+            counts = counts[:limit]
+        return counts
+
+
 def set_tag(obj, name):
     assert obj.id
     cls_spec = TagRegistry.get_spec(obj.__class__)

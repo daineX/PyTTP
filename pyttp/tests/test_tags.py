@@ -88,3 +88,21 @@ class TagTests(unittest.TestCase):
         self.assertTrue("html" in current_tags)
         self.assertFalse("debug" in current_tags)
         self.assertFalse("PyTTP" in current_tags)
+
+
+    def test_tag_cloud(self):
+        obj1 = TaggedObject(name="foo", number=1)
+        obj1.save()
+        set_tags(obj1, "test, debug, FIRE")
+
+        obj2 = TaggedObject(name="bar", number=2)
+        obj2.save()
+        set_tags(obj2, "debug, FIRE")
+
+        obj3 = TaggedObject(name="baz", number=3)
+        obj3.save()
+        set_tags(obj3, "debug")
+
+        tag_cloud = Tag.get_tag_cloud(cls_spec="tagged_obj")
+
+        self.assertEqual([("debug", 3), ("FIRE", 2), ("test", 1)], tag_cloud)
