@@ -227,13 +227,10 @@ class DataBaseObj(object):
     def __eq__(self, other):
         cls = self.__class__
         ocls = other.__class__
-        if cls != ocls: return False
-        for field in cls.fieldTypes:
-            value = getattr(self, field)
-            ovalue = getattr(other, field)
-            if getattr(self, field) != getattr(other, field):
-                return False
-        return True
+        if cls != ocls:
+            return False
+        return self.id == other.id
+
 
     @classmethod
     def _setConnObj(cls, connObj):
@@ -691,9 +688,6 @@ class DataBaseObj(object):
     def select_creation(cls, asc=True, cond = "", limit="", offset="", values = tuple()):
         for inst in cls.select_sort("cdate", asc, cond, limit, offset, values):
             yield inst
-
-    def __eq__(self, other):
-        return self.id == other.id
         
 
 if __name__ == "__main__":
