@@ -79,7 +79,13 @@ class DataBaseTypesEditor(object):
                     t.add(tr(td(field), td(textarea(id="text_%s" % field, rows="1", cols="80", name=field)(inst.__getattr__(field))), td(button(type="button", onmousedown="bigger('text_%s')" % field)("+")) ))
             for ref in dbType.has_many:
                 refName = ref.__name__
-                refIDs = [refInst.id for refInst in inst.getRefs(ref)]
+                refIDs = []#
+                try:
+                    for refInst in inst.getRefs(ref):
+                        refIDs.append(refInst.id)
+                except:
+                    pass
+
                 if ref not in dbType.singular_refs:
                     selection = select(name=refName, multiple="multiple")
                 else:
@@ -242,7 +248,7 @@ class DataBaseTypesEditor(object):
                     innerhtml
                 )
             )
-            yield src.toStr().decode("utf-8")
+            yield src.toStr()
             
             
 
@@ -252,6 +258,11 @@ if __name__ == "__main__":
     import sqlite3
     import pyttp.database
     import blog
+    import sys
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+    else:
+        port = 8080
 
     
     conn = sqlite3.connect(os.path.expanduser("~/.pyttp/blogdb"), check_same_thread=False)
@@ -262,5 +273,5 @@ if __name__ == "__main__":
     blog.BlogAuthor.create()
     blog.BlogComment.create()
     
-    http = wsgi.WSGIListener(DataBaseTypesEditor([blog.BlogEntry, blog.BlogAuthor, blog.BlogComment], {blog.BlogEntry: "title", blog.BlogAuthor: "name", blog.BlogComment:"author"}), 8080)
+    http = wsgi.WSGIListener(DataBaseTypesEditor([blog.BlogEntry, blog.BlogAuthor, blog.BlogComment], {blog.BlogEntry: "title", blog.BlogAuthor: "name", blog.BlogComment:"author"}), port)
     http.serve()
