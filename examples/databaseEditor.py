@@ -12,8 +12,10 @@ class DataBaseTypesEditor(object):
         self.dbTypes = dict((dbType.__name__, dbType) for dbType in dbTypes)
         if displayValues:
             self.displayValues = displayValues
-        
-        
+        else:
+            self.displayValues = dict()
+
+
     def menu(self):
         return p(a(href="/"+name)(name) for name in self.dbTypes)
 
@@ -83,10 +85,7 @@ class DataBaseTypesEditor(object):
                 else:
                     selection = select(name=refName)
                 selection.add(option(value=0)("--"))
-                if ref in self.displayValues:
-                    attr = self.displayValues[ref]
-                else:
-                    attr = "id"
+                attr = self.displayValues.get(ref, "id")
                 selection.add(option(value=refInst.id)(refInst.__getattr__(attr)) for refInst in ref if refInst.id not in refIDs)
                 selection.add(option(value=refInst.id, selected="selected")(refInst.__getattr__(attr)) for refInst in ref if refInst.id in refIDs)
                 t.add(tr(td(refName), td(selection)))
@@ -144,10 +143,7 @@ class DataBaseTypesEditor(object):
             else:
                 selection = select(name=refName)
             selection.add(option(value=0)("--"))
-            if ref in self.displayValues:
-                attr = self.displayValues[ref]
-            else:
-                attr = "id"
+            attr = self.displayValues.get(ref, "id")
             selection.add(option(value=refInst.id)(refInst.__getattr__(attr)) for refInst in ref)
             t.add(tr(td(refName), td(selection)))
         f.add(t)

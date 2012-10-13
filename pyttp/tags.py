@@ -123,7 +123,7 @@ def set_tags(obj, tag_line):
 def get_tags(obj):
     cls_spec = TagRegistry.get_spec(obj.__class__)
     assert cls_spec
-    current_tags = set(Tag.select_cond("cls_spec = ? and obj_id = ?", (cls_spec, obj.id)))
+    current_tags = list(Tag.select_cond("cls_spec = ? and obj_id = ?", (cls_spec, obj.id)))
     return current_tags
 
 
