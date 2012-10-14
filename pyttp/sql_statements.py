@@ -10,7 +10,7 @@ def get_connection():
 def connect(params):
     conn = sqlite3.connect(params)
     conn.row_factory = sqlite3.Row
-    global_connection = connect
+    global_connection = conn
 
 
 class SQLStatement(object):
@@ -62,7 +62,8 @@ class WhereStatement(SQLStatement):
 
     def _where_statement(self):
         if self.filters:
-            where_statement = u"WHERE " + u" AND ".join(u"{}=?".format(key) for key, value in self.filters)
+            where_statement = u"WHERE " + u" AND ".join(u"{}=?".format(key)
+                                                        for key, value in self.filters)
         else:
             where_statement = u""
         return where_statement
