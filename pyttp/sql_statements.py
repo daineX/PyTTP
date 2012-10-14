@@ -2,7 +2,7 @@ import sqlite3
 
 
 global_connection = None
-
+debug = False
 
 def get_connection():
     return global_connection
@@ -15,7 +15,8 @@ def connect(params):
 
 class SQLStatement(object):
 
-    def __init__(self, conn=None):
+    def __init__(self, proxy=None, conn=None):
+        self.proxy = proxy
         if conn:
             self.conn = conn
         else:
@@ -29,15 +30,29 @@ class SQLStatement(object):
 
     def execute(self):
         query = self._build_query()
+        if debug:
+            print "QUERY:", query
         values = self._values()
+        if debug:
+            print "VALUES:", values
         return self.conn.execute(query, tuple(values))
 
+
+    def proxy_execute(self):
+        assert self.proxy
+        return self.proxy.wrap_sql(self.execute())
+
+    def all(self):
+        return self.proxy_execute()
+
+    def first(self):
+        return self.proxy.wrap_sql(self.execute()).next()
 
 
 class WhereStatement(SQLStatement):
 
-    def __init__(self, table_name, conn=None):
-        super(WhereStatement, self).__init__(conn)
+    def __init__(self, table_name, proxy=None, conn=None):
+        super(WhereStatement, self).__init__(proxy=proxy, conn=conn)
         self.table_name = table_name
         self.filters = []
 
@@ -62,15 +77,19 @@ class WhereStatement(SQLStatement):
 
 class SelectStatement(WhereStatement):
 
-    TEMPLATE = u"""SELECT {columns_statement} FROM {table_name} {join_statement} {where_statement} {order_by_statement} {limit_statement};"""
+    TEMPLATE = u"""SELECT {columns_statement} FROM {table_name} {join_statement} {where_statement} {order_by_statement} {limit_statement} {offset_statement};"""
     ON_TEMPLATE = u"{join_table}.{join_on} = {table_name}.{table_on}"
 
-    def __init__(self, table_name, conn=None):
-        super(SelectStatement, self).__init__(table_name, conn=conn)
+    def __init__(self, table_name, proxy=None, conn=None):
+        super(SelectStatement, self).__init__(table_name, proxy=proxy, conn=conn)
         self.order_by_column = None
         self.limit_amount = None
+        self.offset_amount = None
         self.selected_columns = []
         self.join_list = []
+        self.ascending = False
+        self.descending = False
+        
 
 
     def _on_statement(self, join_table, on):
@@ -88,17 +107,29 @@ class SelectStatement(WhereStatement):
                         for join_table, on in self.join_list)
 
 
-
-    def _build_query(self):
-
+    def _order_by_statement(self):
         if self.order_by_column:
             order_by_statement = u"ORDER BY {}".format(self.order_by_column)
         else:
             order_by_statement = u""
-        if self.limit is not None:
+        if self.ascending:
+            order_by_statement += " ASC"
+        elif self.descending:
+            order_by_statement += " DESC"
+        return order_by_statement
+
+
+    def _build_query(self):
+
+
+        if self.limit_amount is not None:
             limit_statement = u"LIMIT {amount}".format(amount=self.limit_amount)
         else:
             limit_statement = u""
+        if self.offset_amount is not None:
+            offset_statement = u"OFFSET {amount}".format(amount=self.offset_amount)
+        else:
+            offset_statement = u""
         if self.selected_columns:
             columns_statement = u", ".join(self.selected_columns)
         else:
@@ -106,8 +137,9 @@ class SelectStatement(WhereStatement):
         join_statement = self._join_statement()
         return self.TEMPLATE.format(table_name=self.table_name,
                                     where_statement=self._where_statement(),
-                                    order_by_statement=order_by_statement,
+                                    order_by_statement=self._order_by_statement(),
                                     limit_statement=limit_statement,
+                                    offset_statement=offset_statement,
                                     columns_statement=columns_statement,
                                     join_statement=join_statement).strip()
 
@@ -127,8 +159,23 @@ class SelectStatement(WhereStatement):
         return self
 
 
+    def offset(self, amount):
+        self.offset_amount = amount
+        return self
+
+
     def join(self, table_name, **on):
         self.join_list.append((table_name, on))
+        return self
+
+
+    def asc(self):
+        self.ascending = True
+        return self
+
+
+    def desc(self):
+        self.descending = True
         return self
 
 
@@ -136,8 +183,8 @@ class InsertStatement(SQLStatement):
 
     INSERT_TEMPLATE = u"INSERT INTO {table_name} ({columns}) VALUES ({values});"
 
-    def __init__(self, table_name, conn=None):
-        super(InsertStatement, self).__init__(conn=conn)
+    def __init__(self, table_name, proxy=None, conn=None):
+        super(InsertStatement, self).__init__(proxy=proxy, conn=conn)
         self.table_name = table_name
         self.insert_columns = []
         self.insert_values = []
@@ -173,8 +220,8 @@ class UpdateStatement(WhereStatement):
 
     UPDATE_TEMPLATE = u"UPDATE {table_name} SET {values} {where_statement};"
 
-    def __init__(self, table_name, conn=None):
-        super(UpdateStatement, self).__init__(table_name, conn=conn)
+    def __init__(self, table_name, proxy=None, conn=None):
+        super(UpdateStatement, self).__init__(table_name, proxy=proxy, conn=conn)
         self.update_values = []
 
 
@@ -200,8 +247,8 @@ class UpdateStatement(WhereStatement):
 
 class RawStatement(SQLStatement):
 
-    def __init__(self, conn=None):
-        super(RawStatement, self).__init__(conn=conn)
+    def __init__(self, proxy=None, conn=None):
+        super(RawStatement, self).__init__(proxy=proxy, conn=conn)
 
 
     def execute(self, raw, *values):
@@ -222,6 +269,3 @@ if __name__ == "__main__":
     stmt.filter(id=10).values(first_name="Paul", city="Berlin")
     print stmt._build_query()
     print stmt._values()
-
-    stmt = RawStatement()
-    stmt.execute("Select * from foo where bar = ? and eggs = ?", 0, "spam")

@@ -4,6 +4,8 @@ import time
 import sys
 import re
 
+from sql_statements import SelectStatement
+
 globalConnObj = None
 
 class hasField(object):
@@ -688,7 +690,19 @@ class DataBaseObj(object):
     def select_creation(cls, asc=True, cond = "", limit="", offset="", values = tuple()):
         for inst in cls.select_sort("cdate", asc, cond, limit, offset, values):
             yield inst
-        
+
+
+    @classmethod
+    def wrap_sql(cls, rows):
+        for row in rows:
+            yield cls.fromAttrs(**row)
+
+    @classmethod
+    def objects(cls):
+        table_name = cls.__name__
+        stmt = SelectStatement(table_name, proxy=cls, conn=cls.conn())
+        return stmt
+
 
 if __name__ == "__main__":
     
