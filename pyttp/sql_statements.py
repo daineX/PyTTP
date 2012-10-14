@@ -46,7 +46,10 @@ class SQLStatement(object):
         return self.proxy_execute()
 
     def first(self):
-        return self.proxy.wrap_sql(self.execute()).next()
+        try:
+            return self.proxy.wrap_sql(self.execute()).next()
+        except StopIteration:
+            return None
 
 
 class WhereStatement(SQLStatement):
