@@ -53,23 +53,23 @@ class Tag(DataBaseObj):
     @classmethod
     def get_objs_by_name(cls, name, cls_spec=None):
         if cls_spec:
-            obj_ids = [x.obj_id for x in cls.select_cond("name = ? and cls_spec = ?", (name, cls_spec))]
+            obj_ids = [x.obj_id for x in cls.objects().filter(name=name, cls_spec=cls_spec).all()]
             cls_obj = TagRegistry.get_cls(cls_spec)
             assert cls_obj
             for obj_id in obj_ids:
-                yield cls_obj.select_id(obj_id)
+                yield cls_obj.objects().filter(id=obj_id).first()
         else:
-            tag_objs = cls.select_cond("name = ?", (name,))
+            tag_objs = cls.objects().filter(name=name).all()
             for tag in tag_objs:
                 cls_obj = TagRegistry.get_cls(tag.cls_spec)
                 assert cls_obj
-                yield cls_obj.select_id(tag.obj_id)
+                yield cls_obj.objects().filter(id=tag.obj_id).first()
 
 
     @classmethod
     def get_tag_cloud(cls, cls_spec=None, limit=None):
         if cls_spec:
-            tags = cls.select_cond("cls_spec = ?", (cls_spec,))
+            tags = cls.objects().filter(cls_spec=cls_spec).all()
         else:
             tags = list(cls)
 
@@ -98,7 +98,7 @@ def remove_tag(obj, name):
     cls_spec = TagRegistry.get_spec(obj.__class__)
     assert cls_spec
     try:
-        tag = Tag.select_cond("name = ? and cls_spec = ? and obj_id = ?", (name, cls_spec, obj.id)).next()
+        tag = Tag.objects().filter(name=name, cls_spec=cls_spec, obj_id=obj.id).first()
         Tag.delete(tag)
     except StopIteration:
         pass
@@ -109,7 +109,7 @@ def set_tags(obj, tag_line):
     cls_spec = TagRegistry.get_spec(obj.__class__)
     assert cls_spec
     current_tags = set(tag.name for tag in
-                      Tag.select_cond("cls_spec = ? and obj_id = ?", (cls_spec, obj.id)))
+                       Tag.objects().filter(cls_spec=cls_spec, obj_id=obj.id).all())
     tags_to_set = set([x.strip() for x in tag_line.split(",")])
     tags_to_delete = current_tags - tags_to_set
     tags_to_set = tags_to_set - current_tags
@@ -123,7 +123,7 @@ def set_tags(obj, tag_line):
 def get_tags(obj):
     cls_spec = TagRegistry.get_spec(obj.__class__)
     assert cls_spec
-    current_tags = list(Tag.select_cond("cls_spec = ? and obj_id = ?", (cls_spec, obj.id)))
+    current_tags = list(Tag.objects().filter(cls_spec=cls_spec, obj_id=obj.id).all())
     return current_tags
 
 
