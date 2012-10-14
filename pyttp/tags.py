@@ -97,11 +97,9 @@ def set_tag(obj, name):
 def remove_tag(obj, name):
     cls_spec = TagRegistry.get_spec(obj.__class__)
     assert cls_spec
-    try:
-        tag = Tag.objects().filter(name=name, cls_spec=cls_spec, obj_id=obj.id).first()
+    tag = Tag.objects().filter(name=name, cls_spec=cls_spec, obj_id=obj.id).first()
+    if tag:
         Tag.delete(tag)
-    except StopIteration:
-        pass
 
 
 def set_tags(obj, tag_line):
