@@ -72,12 +72,13 @@ class FileServer(object):
     """
 
 
-    def __init__(self, document_root, directory_listing = False):
+    def __init__(self, document_root, directory_listing=False, max_cache_age=3600):
         """
         directory_listing: Allow directory listing if True.
         """
         self.document_root = os.path.normpath(document_root)
         self.directory_listing = directory_listing
+        self.max_cache_age=max_cache_age
 
 
     def __call__(self, environ, start_response):
@@ -126,7 +127,8 @@ class FileServer(object):
             try:
                 with open(filename) as filehandle:
                     status = "200 OK"
-                    headers = [('Content-type', mime)]
+                    headers = [('Content-Type', mime),
+                               ('Cache-Control', 'public, max-age=%s' % self.max_cache_age)]
                     start_response(status, headers)
                     while True:
                         data = filehandle.read(65536)
