@@ -54,6 +54,16 @@ class SQLStatement(object):
 
 class WhereStatement(SQLStatement):
 
+    OP_MAP = {'eq': '=',
+              'ne': '!=',
+              'gt': '>',
+              'lt': '<',
+              'ge': '>=',
+              'le': '<=',
+              'like': 'LIKE',
+              'ilike': 'ILIKE'}
+
+
     def __init__(self, table_name, proxy=None, conn=None):
         super(WhereStatement, self).__init__(proxy=proxy, conn=conn)
         self.table_name = table_name
@@ -62,21 +72,32 @@ class WhereStatement(SQLStatement):
 
     def _where_statement(self):
         if self.filters:
-            where_statement = u"WHERE " + u" AND ".join(u"{}=?".format(key)
-                                                        for key, value in self.filters)
+            where_statement = u"WHERE " + u" AND ".join(u"{} {} ?".format(key, op)
+                                                        for key, value, op in self.filters)
         else:
             where_statement = u""
         return where_statement
 
 
+    def _parse_filter_op(self, key):
+        key_op = key.split("__", 1)
+        if len(key_op) == 1:
+            return key, "="
+        else:
+            key, op = key_op
+            op = self.OP_MAP.get(op, "=")
+        return key, op
+
+
     def filter(self, **kwargs):
         for key, value in kwargs.items():
-            self.filters.append((key, value))
+            key, op = self._parse_filter_op(key)
+            self.filters.append((key, value, op))
         return self
 
 
     def _values(self):
-        return [value for key, value in self.filters]        
+        return [value for key, value, op in self.filters]
 
 
 class SelectStatement(WhereStatement):

@@ -25,6 +25,7 @@ def validate(**validator_mapping):
         def inner(*args, **kwargs):
             for kwarg in kwargs:
                 if kwarg in validator_mapping:
+
                     new_val = validator_mapping[kwarg](kwargs[kwarg])
                     if new_val is not None:
                             kwargs[kwarg] = new_val
