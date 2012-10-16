@@ -224,6 +224,8 @@ class WSGIHandler(DefaultHandler):
 
                 self.logger.log("INFO", "%s:%s requesting \"%s\"" % (addr[0], addr[1], req.type.resource))
                 self.logger.log("INFO", "Headers: \n%s" % req.headers)
+                environ['REMOTE_ADDRESS'] = addr[0]
+                environ['REMOTE_PORT'] = addr[1]
                 environ['PATH_INFO'] = path
                 environ['QUERY_STRING'] = query
                 if 'HTTP_CONTENT_TYPE' in environ:
