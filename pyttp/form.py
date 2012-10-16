@@ -96,7 +96,7 @@ class Bunch(dict):
         try:
             return self.__getitem__(value)
         except:
-            raise AttributeError
+            raise AttributeError(value)
 
 
     def __setattr__(self, name, value):
