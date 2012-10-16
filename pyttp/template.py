@@ -140,8 +140,11 @@ class Template(object):
         if not context:
             context = {}
 
-        for processor in self.context_processors:
-            context.update(processor())
+        if base_indent == 0:
+            # Let's assume noone will ever call render with base_indent set
+            # to something different.
+            for processor in self.context_processors:
+                context.update(processor())
 
         context.update({"_TEMPLATE_SEARCH_PATH": self.search_path})
         tag_stack = [(Node(''), -1)]
