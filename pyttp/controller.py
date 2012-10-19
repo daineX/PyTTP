@@ -110,11 +110,23 @@ def redirect_to(location):
 class TemplateResponse(ControllerResponse):
 
     def __init__(self, template, context=None, status="200 OK", headers=None, search_path=None):
-        if not context:
-            context = {}
-        payload = ''.join(Template.load_and_render(template, context, search_path=search_path))
-        super(TemplateResponse, self).__init__(payload, status, headers)
+        super(TemplateResponse, self).__init__('', status, headers)
+        if context:
+            self.context = context
+        else:
+            self.context = {}
+        self.template = template
+        self.search_path = search_path
 
+
+    def inject_request(self, request):
+        self.context['request'] = request
+
+
+    def get_payload(self):
+        return ''.join(Template.load_and_render(self.template,
+                                                self.context,
+                                                search_path=self.search_path))
 
 
 class ControllerRequest(object):
@@ -252,7 +264,10 @@ class Controller(object):
             args = path_parts[1:]
             kwargs = process_field_storage(lookup, field_storage, is_post)
             request = ControllerRequest(environ, kwargs)
-            return lookup(request, *args)
+            response = lookup(request, *args)
+            if hasattr(response, "inject_request"):
+                response.inject_request(request)
+            return response
 
         raise Http404
 
