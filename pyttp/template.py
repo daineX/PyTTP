@@ -144,7 +144,7 @@ class Template(object):
             # Let's assume noone will ever call render with base_indent set
             # to something different.
             for processor in self.context_processors:
-                context.update(processor())
+                context = processor(context)
 
         context.update({"_TEMPLATE_SEARCH_PATH": self.search_path})
         tag_stack = [(Node(''), -1)]
