@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import network
 import os
 import socket
-import sys
-from core import *
-import network
-import types
 import ssl
+import sys
+import time
+import types
+
+from core import *
 
 class DummyLogger(object):
 
@@ -28,6 +30,7 @@ class DefaultHandler(object):
         request = ''
         last4 = ''
         verb = conn.recv(4)
+        self.start_time = time.time()
         request += verb
         ready = True
         if verb == "POST":
@@ -210,7 +213,7 @@ class WSGIHandler(DefaultHandler):
                 headers = []
                 #parse request
                 self.ready, (req, reqBody) = self.readRequest(conn, addr)
-                environ = {}
+                environ = {'pyttp.start_time': self.start_time}
                 for header in req.headers:
                     environ['HTTP_' + header.name.upper().replace("-", "_")] = header.value
                 # setup general environment
@@ -311,6 +314,9 @@ class WSGIHandler(DefaultHandler):
                     type, value, traceback = self.exc_info
                     raise value
 
+                end_time = time.time()
+                self.logger.log("INFO", "Request took %f ms" % ((end_time - self.start_time) * 1000.))                
+
             except (socket.timeout, ssl.SSLError, SocketExhausted):
                 try:
                     conn.close()
@@ -338,7 +344,6 @@ class WSGIHandler(DefaultHandler):
                 except:
                     pass
                 break
-
 
             keepAliveCount += 1
             self.status = None
