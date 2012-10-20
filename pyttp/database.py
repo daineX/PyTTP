@@ -336,7 +336,7 @@ class DataBaseObj(object):
         raise AttributeError
         
     def __setattr__(self, attr, value):
-        if attr in self.fieldValues and attr != "cdate":
+        if attr in self.fieldValues:
             cls = self.__class__
             if cls.fieldTypes[attr] == unicode:
                 if isinstance(value, unicode):
