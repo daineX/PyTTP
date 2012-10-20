@@ -84,7 +84,7 @@ class FileServer(object):
     def __call__(self, environ, start_response):
         import urllib
         path = urllib.unquote(environ["PATH_INFO"][1:])
-        filename = os.path.normpath(os.path.join(self.document_root, path))
+        filename = os.path.normpath(os.path.join(self.document_root, path.decode("utf-8")))
 
         filename_valid = True
         if os.path.commonprefix([self.document_root, filename]) != self.document_root:
