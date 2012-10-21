@@ -8,6 +8,35 @@ from sql_statements import SelectStatement
 
 globalConnObj = None
 
+class ConnectionProxy(object):
+
+    def __init__(self, conn):
+        self.__dict__["conn"] = conn
+        self.__dict__["num_executes"] = 0
+
+    def __getattr__(self, value):
+        return getattr(self.conn, value)
+
+    def reset_executes(self):
+        self.num_executes = 0
+
+    def __setattr__(self, key, value):
+        if key in self.__dict__:
+            self.__dict__[key] = value
+        else:
+            setattr(self.conn, key, value)
+
+    def execute(self, *args, **kwargs):
+        self.num_executes += 1
+        return self.conn.execute(*args, **kwargs)
+
+def create_sqlite3_connection(database):
+    import sqlite3
+    conn = sqlite3.connect(database, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    conn = ConnectionProxy(conn)
+    return conn
+
 class hasField(object):
     
     fieldDefs = {}
