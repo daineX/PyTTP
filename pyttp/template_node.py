@@ -179,7 +179,7 @@ class TagNode(Node):
             evaluated_attrs = []
             for key, value in attrs:
                 if value.startswith("="):
-                    value = self.eval_code(context, value[1:].lstrip())
+                    value = self.eval_code(context, value[1:].lstrip(), honor_autoescape=True)
                 evaluated_attrs.append(u'%s="%s"' % (key, value))
             html.append(u' '.join(evaluated_attrs))
         if eval_remainder and remainder:
