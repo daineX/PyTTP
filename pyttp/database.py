@@ -3,7 +3,7 @@
 import time
 import sys
 import re
-
+from datetime import datetime
 from sql_statements import SelectStatement
 
 globalConnObj = None
@@ -343,7 +343,13 @@ class DataBaseObj(object):
         query = template % (tableName, cls.key_name)
         cls.conn().execute(query, (inst_id,))
         cls.conn().commit()
-    
+
+
+    @property
+    def cdate_as_datetime(self):
+        return datetime.fromtimestamp(self.cdate)
+
+
     def __getattr__(self, attr):
         if attr in self.fieldValues:
             if isinstance(self.__class__.fieldTypes[attr], DataBaseType):
