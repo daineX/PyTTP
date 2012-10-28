@@ -2,7 +2,7 @@ import sqlite3
 
 
 global_connection = None
-debug = False
+debug = True
 
 def get_connection():
     return global_connection
@@ -60,6 +60,7 @@ class WhereStatement(SQLStatement):
               'lt': '<',
               'ge': '>=',
               'le': '<=',
+              'in': 'IN',
               'like': 'LIKE',
               'ilike': 'ILIKE'}
 
@@ -74,10 +75,18 @@ class WhereStatement(SQLStatement):
 
     def _where_statement(self):
         if self.filters:
-            initial_key, _, _, initial_op = self.filters[0]
-            where_statement = u"WHERE {} {} ? ".format(initial_key, initial_op)
-            where_statement += " ".join("{} {} {} ?".format(bool_op, key, op)
-                                        for key, _, bool_op, op in self.filters[1:])
+            initial_key, initial_value, _, initial_op = self.filters[0]
+            if initial_op == "IN":
+                where_statement = u"WHERE {} {} ({}) ".format(initial_key, initial_op,
+                                                              ','.join("?" for _ in initial_value))
+            else:
+                where_statement = u"WHERE {} {} ? ".format(initial_key, initial_op)
+            for key, value, bool_op, op in self.filters[1:]:
+                if op == "IN":
+                    where_statement += " {} {} {} ({})".format(bool_op, key, op,
+                                                               ','.join("?" for _ in value))
+                else:
+                    where_statement += " {} {} {} ?".format(bool_op, key, op)
         else:
             where_statement = u""
         return where_statement
@@ -105,7 +114,13 @@ class WhereStatement(SQLStatement):
 
 
     def _values(self):
-        return [value for key, value, boo_op, op in self.filters]
+        vals = []
+        for _, val, _, _ in self.filters:
+            if isinstance(val, list):
+                vals += val
+            else:
+                vals.append(val)
+        return vals
 
 
 class SelectStatement(WhereStatement):
@@ -300,5 +315,10 @@ if __name__ == "__main__":
 
     stmt = UpdateStatement("user")
     stmt.filter(id=10).values(first_name="Paul", city="Berlin")
+    print stmt._build_query()
+    print stmt._values()
+
+
+    stmt = SelectStatement("foobar").filter(name__eq="sususudio").filter(or__title__eq="Phil").filter( or__fu__in=[1, 3, 3, 7])
     print stmt._build_query()
     print stmt._values()
