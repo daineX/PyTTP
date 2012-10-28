@@ -15,6 +15,12 @@ def expect_list(*list_params):
         return func
     return decorator
 
+def expect_bool(*bool_params):
+    def decorator(func):
+        func.expect_bool = bool_params
+        return func
+    return decorator
+
 def expose(func):
     func.exposed = True
     return func
@@ -237,14 +243,20 @@ class Controller(object):
                             value = mf
                         else:
                             value = mf.value
-                            if not is_post and value == '':
-                                value = True
+                            if (not is_post and value == ''
+                                and hasattr(meth, "expect_bool")
+                                and key in meth.expect_bool):
+                                    value = True
                             if isinstance(value, str):
                                 try:
                                     value = value.decode("utf-8")
                                 except UnicodeDecodeError:
                                     pass
                     kwargs[key] = value
+            if hasattr(meth, "expect_bool"):
+                for key in meth.expect_bool:
+                    if key not in kwargs:
+                        kwargs[key] = False
             return kwargs
 
         # delegate to method
