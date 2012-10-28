@@ -63,6 +63,8 @@ class WhereStatement(SQLStatement):
               'like': 'LIKE',
               'ilike': 'ILIKE'}
 
+    BOOL_OPS = {'or': 'OR',
+                'and': 'AND'}
 
     def __init__(self, table_name, proxy=None, conn=None):
         super(WhereStatement, self).__init__(proxy=proxy, conn=conn)
@@ -72,32 +74,38 @@ class WhereStatement(SQLStatement):
 
     def _where_statement(self):
         if self.filters:
-            where_statement = u"WHERE " + u" AND ".join(u"{} {} ?".format(key, op)
-                                                        for key, value, op in self.filters)
+            initial_key, _, _, initial_op = self.filters[0]
+            where_statement = u"WHERE {} {} ? ".format(initial_key, initial_op)
+            where_statement += " ".join("{} {} {} ?".format(bool_op, key, op)
+                                        for key, _, bool_op, op in self.filters[1:])
         else:
             where_statement = u""
         return where_statement
 
 
     def _parse_filter_op(self, key):
-        key_op = key.split("__", 1)
-        if len(key_op) == 1:
-            return key, "="
-        else:
-            key, op = key_op
-            op = self.OP_MAP.get(op, "=")
-        return key, op
+        split_count = key.count("__")
+        key = key.split("__", split_count)
+        if len(key) < 2:
+            key = key + ["="]
+        if len(key) < 3:
+            key = ["AND"] + key
+        bool_op, key, op = key
+        bool_key_op = key.split("__", 1)
+        op = self.OP_MAP.get(op, "=")
+        bool_op = self.BOOL_OPS.get(bool_op, "AND")
+        return bool_op, key, op
 
 
     def filter(self, **kwargs):
         for key, value in kwargs.items():
-            key, op = self._parse_filter_op(key)
-            self.filters.append((key, value, op))
+            bool_op, key, op = self._parse_filter_op(key)
+            self.filters.append((key, value, bool_op, op))
         return self
 
 
     def _values(self):
-        return [value for key, value, op in self.filters]
+        return [value for key, value, boo_op, op in self.filters]
 
 
 class SelectStatement(WhereStatement):
