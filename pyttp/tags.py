@@ -67,6 +67,28 @@ class Tag(DataBaseObj):
 
 
     @classmethod
+    def get_objs_by_names(cls, names, cls_spec=None):
+        if cls_spec:
+            query = cls.objects()
+            for name in names:
+                query = query.filter(or__name__eq=name, cls_spec=cls_spec)
+            obj_ids = [x.obj_id for x in query.all()]
+            cls_obj = TagRegistry.get_cls(cls_spec)
+            assert cls_obj
+            for obj in cls_obj.objects().filter(id__in=obj_ids).all():
+                yield obj
+        else:
+            query = cls.objects()
+            for name in names:
+                query = query.filter(or__name__eq=name)
+            tag_objs = query.all()
+            for tag in tag_objs:
+                cls_obj = TagRegistry.get_cls(tag.cls_spec)
+                assert cls_obj
+                yield cls_obj.objects().filter(id=tag.obj_id).first()
+
+
+    @classmethod
     def get_tag_cloud(cls, cls_spec=None, limit=None):
         if cls_spec:
             tags = cls.objects().filter(cls_spec=cls_spec).all()
