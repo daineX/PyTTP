@@ -1,4 +1,4 @@
-
+from functools import partial
 from pyttp.database import DataBaseObj, hasField
 
 
@@ -17,6 +17,16 @@ class TagRegistry(object):
         cls._init_registry()
         cls.REGISTRY.cls_lookup[cls_spec] = cls_obj
         cls.REGISTRY.spec_lookup[cls_obj] = cls_spec
+
+        cls_obj.get_objs_by_tag_name = partial(Tag.get_objs_by_name, cls_spec=cls_spec)
+        cls_obj.get_objs_by_tag_names = partial(Tag.get_objs_by_names, cls_spec=cls_spec)
+        cls_obj.get_tag_cloud = partial(Tag.get_tag_cloud, cls_spec=cls_spec)
+
+        cls_obj.get_tag_line = get_tag_line
+        cls_obj.get_tags = get_tags
+        cls_obj.set_tags = set_tags
+        cls_obj.set_tag = set_tag
+        cls_obj.remove_tag = remove_tag
 
 
     @classmethod
