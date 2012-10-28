@@ -56,8 +56,8 @@ class Tag(DataBaseObj):
             obj_ids = [x.obj_id for x in cls.objects().filter(name=name, cls_spec=cls_spec).all()]
             cls_obj = TagRegistry.get_cls(cls_spec)
             assert cls_obj
-            for obj_id in obj_ids:
-                yield cls_obj.objects().filter(id=obj_id).first()
+            for obj in cls_obj.objects().filter(id__in=obj_ids).all():
+                yield obj
         else:
             tag_objs = cls.objects().filter(name=name).all()
             for tag in tag_objs:
