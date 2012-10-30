@@ -79,6 +79,12 @@ class RenderTests(unittest.TestCase):
                                  ('class', 'big boxed'),
                                  ('id', 'title')])
 
+        tag_string = "span.field-note"
+        attrs = []
+        name, attrs = tag_node._handle_shortcuts(tag_string, attrs)
+        self.assertEqual(name, "span")
+        self.assertEqual(attrs, [('class', 'field-note')])
+
     def test_invalid_attrs(self):
         tag_node = TagNode( "%dummy")
         missing_key = "'bar', target: 'foo'"
