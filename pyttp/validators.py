@@ -13,7 +13,7 @@ def not_empty(value):
 
 def is_email(email_str):
     if len(email_str.split("@")) != 2:
-        raise ValidationException("Invalid email adress")
+        raise ValidationException("Invalid email address")
     return email_str
 
 
