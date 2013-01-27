@@ -237,8 +237,17 @@ class SelectStatement(WhereStatement):
 
     @return_copy
     def __getitem__(self, slice_):
-        self.offset_amount = slice_.start
-        self.limit_amount = slice_.stop - slice_.start
+        if isinstance(slice_, slice):
+            if slice_.start is not None:
+                self.offset_amount = slice_.start
+            if slice_.stop is not None:
+                if slice_.start is None:
+                    self.limit_amount = slice_.stop
+                else:
+                    self.limit_amount = slice_.stop - slice_.start
+        else:
+            self.offset_amount = slice_
+            self.limit_amount = 1
         return self
 
     def __len__(self):
