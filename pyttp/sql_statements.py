@@ -232,6 +232,7 @@ class SelectStatement(WhereStatement):
 
     @return_copy
     def count(self):
+        self.count_ = True
         return iter(self.execute()).next()[0]
 
     @return_copy
