@@ -118,7 +118,7 @@ class SocketFileWrapper(object):
             self.buf += s
             if s == '':
                 break
-            if len(self.buf) >= max_char:
+            if max_char is not None and len(self.buf) >= max_char:
                 rBuf = self.buf[:max_char]
                 self.buf = self.buf[max_char:]
                 return rBuf
