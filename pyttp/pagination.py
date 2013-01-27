@@ -22,7 +22,7 @@ class Paginator(object):
     def get_page(cls, request, page_parameter=None):
         page_parameter = page_parameter or 'page'
         try:
-            page = int(request.REQUEST.get(page_parameter, 0))
+            page = int(request.REQUEST.get(page_parameter, 1))
             if page < 1:
                 raise cls.InvalidPageError
         except ValueError:
