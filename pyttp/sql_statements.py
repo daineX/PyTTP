@@ -12,6 +12,13 @@ def connect(params):
     conn.row_factory = sqlite3.Row
     global_connection = conn
 
+def return_copy(meth):
+    def inner(*args, **kwargs):
+        inst = args[0]
+        copy_inst = copy.copy(inst)
+        return meth(copy_inst, *args[1:], **kwargs)
+    return inner
+
 
 class SQLStatement(object):
 
@@ -102,6 +109,7 @@ class WhereStatement(SQLStatement):
         bool_op = self.BOOL_OPS.get(bool_op, "AND")
         return bool_op, key, op
 
+    @return_copy
     def filter(self, **kwargs):
         for key, value in kwargs.items():
             bool_op, key, op = self._parse_filter_op(key)
@@ -187,39 +195,56 @@ class SelectStatement(WhereStatement):
                                     columns_statement=columns_statement,
                                     join_statement=join_statement).strip()
 
+    @return_copy
     def columns(self, *args):
         self.selected_columns = args
         return self
 
+    @return_copy
     def order_by(self, column):
         self.order_by_column = column
         return self
 
+    @return_copy
     def limit(self, amount):
         self.limit_amount = amount
         return self
 
+    @return_copy
     def offset(self, amount):
         self.offset_amount = amount
         return self
 
+    @return_copy
     def join(self, table_name, **on):
         self.join_list.append((table_name, on))
         return self
 
+    @return_copy
     def asc(self):
         self.ascending = True
         return self
 
+    @return_copy
     def desc(self):
         self.descending = True
         return self
 
+    @return_copy
     def count(self):
-        count_copy = copy.copy(self)
-        count_copy.count_ = True
-        return iter(count_copy.execute()).next()[0]
+        return iter(self.execute()).next()[0]
 
+    @return_copy
+    def __getitem__(self, slice_):
+        self.offset_amount = slice_.start
+        self.limit_amount = slice_.stop - slice_.start
+        return self
+
+    def __len__(self):
+        return self.count()
+
+    def __iter__(self):
+        return iter(self.all())
 
 class InsertStatement(SQLStatement):
 
