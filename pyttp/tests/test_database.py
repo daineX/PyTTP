@@ -1,8 +1,5 @@
 import unittest
 
-import sys
-sys.path.append("../..")
-
 from pyttp import database as db
 import sqlite3
 
