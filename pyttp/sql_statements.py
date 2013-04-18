@@ -81,10 +81,10 @@ class WhereStatement(SQLStatement):
         if self.filters:
             initial_key, initial_value, _, initial_op = self.filters[0]
             if initial_op == "IN":
-                where_statement = u"WHERE {} {} ({}) ".format(initial_key, initial_op,
+                where_statement = u" WHERE {} {} ({})".format(initial_key, initial_op,
                                                               ','.join("?" for _ in initial_value))
             else:
-                where_statement = u"WHERE {} {} ? ".format(initial_key, initial_op)
+                where_statement = u" WHERE {} {} ?".format(initial_key, initial_op)
             for key, value, bool_op, op in self.filters[1:]:
                 if op == "IN":
                     where_statement += " {} {} {} ({})".format(bool_op, key, op,
@@ -103,7 +103,6 @@ class WhereStatement(SQLStatement):
         if len(key) < 3:
             key = ["AND"] + key
         bool_op, key, op = key
-        bool_key_op = key.split("__", 1)
         op = self.OP_MAP.get(op, "=")
         bool_op = self.BOOL_OPS.get(bool_op, "AND")
         return bool_op, key, op
@@ -127,7 +126,7 @@ class WhereStatement(SQLStatement):
 
 class SelectStatement(WhereStatement):
 
-    TEMPLATE = u"""SELECT {columns_statement} FROM {table_name} {join_statement} {where_statement} {order_by_statement} {limit_statement} {offset_statement};"""
+    TEMPLATE = u"""SELECT {columns_statement} FROM {table_name}{join_statement}{where_statement}{order_by_statement}{limit_statement}{offset_statement};"""
     ON_TEMPLATE = u"{join_table}.{join_on} = {table_name}.{table_on}"
 
     def __init__(self, table_name, proxy=None, conn=None):
@@ -150,13 +149,17 @@ class SelectStatement(WhereStatement):
                                        table_on=table_on)
 
     def _join_statement(self):
-        return " ".join(u"JOIN {table_name} ON {on}".format(table_name=join_table,
-                                                            on=self._on_statement(join_table, on))
-                        for join_table, on in self.join_list)
+        if self.join_list:
+            return " " + " ".join(u"JOIN {table_name} ON {on}"
+                                    .format(table_name=join_table,
+                                            on=self._on_statement(join_table, on))
+                             for join_table, on in self.join_list)
+        else:
+            return ""
 
     def _order_by_statement(self):
         if self.order_by_column:
-            order_by_statement = u"ORDER BY {}".format(self.order_by_column)
+            order_by_statement = u" ORDER BY {}".format(self.order_by_column)
         else:
             order_by_statement = u""
         if self.ascending:
@@ -177,11 +180,11 @@ class SelectStatement(WhereStatement):
 
     def _build_query(self):
         if self.limit_amount is not None:
-            limit_statement = u"LIMIT {amount}".format(amount=self.limit_amount)
+            limit_statement = u" LIMIT {amount}".format(amount=self.limit_amount)
         else:
             limit_statement = u""
         if self.offset_amount is not None:
-            offset_statement = u"OFFSET {amount}".format(amount=self.offset_amount)
+            offset_statement = u" OFFSET {amount}".format(amount=self.offset_amount)
         else:
             offset_statement = u""
         columns_statement = self._columns_statement()
@@ -255,6 +258,9 @@ class SelectStatement(WhereStatement):
     def __iter__(self):
         return iter(self.all())
 
+    def __unicode__(self):
+        return self._build_query()
+
 class InsertStatement(SQLStatement):
 
     INSERT_TEMPLATE = u"INSERT INTO {table_name} ({columns}) VALUES ({values});"
@@ -322,23 +328,3 @@ class RawStatement(SQLStatement):
     def execute(self, raw, *values):
         self.conn.execute(raw, values)
 
-
-if __name__ == "__main__":
-    stmt = SelectStatement("user").columns("id", "first_name", "city", "birth_date")
-    stmt = stmt.filter(first_name="Paul", city="Berlin").order_by("id").limit(10)
-    stmt = stmt.join("posts", user_id="id")
-    print stmt._build_query()
-    print stmt._values()
-
-    stmt = InsertStatement("user").columns("first_name", "city").values("Paul", "Berlin")
-    print stmt._build_query()
-
-    stmt = UpdateStatement("user")
-    stmt.filter(id=10).values(first_name="Paul", city="Berlin")
-    print stmt._build_query()
-    print stmt._values()
-
-
-    stmt = SelectStatement("foobar").filter(name__eq="sususudio").filter(or__title__eq="Phil").filter( or__fu__in=[1, 3, 3, 7])
-    print stmt._build_query()
-    print stmt._values()
