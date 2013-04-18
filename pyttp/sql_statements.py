@@ -2,7 +2,7 @@ import sqlite3
 import copy
 
 global_connection = None
-debug = True
+debug = False
 
 def get_connection():
     return global_connection
@@ -13,10 +13,9 @@ def connect(params):
     global_connection = conn
 
 def return_copy(meth):
-    def inner(*args, **kwargs):
-        inst = args[0]
+    def inner(inst, *args, **kwargs):
         copy_inst = copy.copy(inst)
-        return meth(copy_inst, *args[1:], **kwargs)
+        return meth(copy_inst, *args, **kwargs)
     return inner
 
 
