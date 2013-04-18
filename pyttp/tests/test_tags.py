@@ -31,6 +31,10 @@ class TagTests(unittest.TestCase):
         AnotherTaggedObject.create()
         Tag.create()
 
+    def tearDown(self):
+        for tag in Tag.objects().all():
+            Tag.delete(tag)
+
 
     def test_set_tag(self):
         obj1 = TaggedObject(name="foo", number=1)
