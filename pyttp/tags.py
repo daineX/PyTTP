@@ -1,3 +1,4 @@
+import re
 from functools import partial
 from pyttp.database import DataBaseObj, hasField
 
@@ -12,8 +13,15 @@ class TagRegistry(object):
         self.spec_lookup = dict()
 
 
+    @staticmethod
+    def _cls_spec_from_name(name):
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
     @classmethod
-    def register(cls, cls_obj, cls_spec):
+    def register(cls, cls_obj, cls_spec=None):
+        if cls_spec is None:
+            cls_spec = cls._cls_spec_from_name(cls_obj.__name__)
         cls._init_registry()
         cls.REGISTRY.cls_lookup[cls_spec] = cls_obj
         cls.REGISTRY.spec_lookup[cls_obj] = cls_spec
@@ -47,9 +55,9 @@ class TagRegistry(object):
         return cls.REGISTRY.spec_lookup.get(cls_obj)
 
 
-def is_tagged(cls_spec):
+def is_tagged(cls_spec=None):
     def decorator(cls):
-        TagRegistry.register(cls, cls_spec)
+        TagRegistry.register(cls, cls_spec=cls_spec)
         return cls
     return decorator
 
