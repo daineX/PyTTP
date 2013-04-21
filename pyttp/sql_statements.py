@@ -79,23 +79,29 @@ class WhereStatement(SQLStatement):
 
     def _where_statement(self):
         if self.filters:
-            initial_key, initial_value, _, initial_op = self.filters[0]
-            if initial_op == "IN":
-                where_statement = u" WHERE {} {} ({})".format(initial_key, initial_op,
-                                                              ','.join("?" for _ in initial_value))
-            else:
-                where_statement = u" WHERE {} {} ?".format(initial_key, initial_op)
-            for key, value, bool_op, op in self.filters[1:]:
+            where_statement = [" WHERE"]
+            for index, data in enumerate(self.filters):
+                (table_name, key, value, bool_op, op) = data
+                if table_name is not None:
+                    key = "{}.{}".format(table_name, key)
+                if index:
+                    where_statement.append(" {}".format(bool_op))
+                where_statement.append(" {} {}".format(key, op))
                 if op == "IN":
-                    where_statement += " {} {} {} ({})".format(bool_op, key, op,
-                                                               ','.join("?" for _ in value))
+                    where_statement.append(" ({})".format(
+                                                   ','.join("?" for _ in value)))
                 else:
-                    where_statement += " {} {} {} ?".format(bool_op, key, op)
+                    where_statement.append(" ?")
+            return "".join(where_statement)
         else:
-            where_statement = u""
+            return ""
         return where_statement
 
     def _parse_filter_op(self, key):
+        table_count = key.count("___")
+        table_name = None
+        if table_count:
+            table_name, key = key.split("___")
         split_count = key.count("__")
         key = key.split("__", split_count)
         if len(key) < 2:
@@ -105,18 +111,18 @@ class WhereStatement(SQLStatement):
         bool_op, key, op = key
         op = self.OP_MAP.get(op, "=")
         bool_op = self.BOOL_OPS.get(bool_op, "AND")
-        return bool_op, key, op
+        return table_name, bool_op, key, op
 
     @return_copy
     def filter(self, **kwargs):
         for key, value in kwargs.items():
-            bool_op, key, op = self._parse_filter_op(key)
-            self.filters.append((key, value, bool_op, op))
+            table_name, bool_op, key, op = self._parse_filter_op(key)
+            self.filters.append((table_name, key, value, bool_op, op))
         return self
 
     def _values(self):
         vals = []
-        for _, val, _, _ in self.filters:
+        for _, _, val, _, _ in self.filters:
             if isinstance(val, list):
                 vals += val
             else:
@@ -127,7 +133,7 @@ class WhereStatement(SQLStatement):
 class SelectStatement(WhereStatement):
 
     TEMPLATE = u"""SELECT {columns_statement} FROM {table_name}{join_statement}{where_statement}{order_by_statement}{limit_statement}{offset_statement};"""
-    ON_TEMPLATE = u"{join_table}.{join_on} = {table_name}.{table_on}"
+    ON_TEMPLATE = u"{join_table}.{join_on} = {table_on}"
 
     def __init__(self, table_name, proxy=None, conn=None):
         super(SelectStatement, self).__init__(table_name, proxy=proxy, conn=conn)
@@ -145,7 +151,6 @@ class SelectStatement(WhereStatement):
         join_on, table_on = on.items()[0]
         return self.ON_TEMPLATE.format(join_table=join_table,
                                        join_on=join_on,
-                                       table_name=self.table_name,
                                        table_on=table_on)
 
     def _join_statement(self):

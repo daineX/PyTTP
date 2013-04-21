@@ -36,7 +36,7 @@ class SQLStatementsTests(TestCase):
         self.assertEqual(stmt._values(), ["Paul", "Hans"])
 
     def test_join(self):
-        stmt = SelectStatement("user").join("address", user_id="id")
+        stmt = SelectStatement("user").join("address", user_id="user.id")
         self.assertEqual(unicode(stmt), "SELECT * FROM user JOIN address ON address.user_id = user.id;")
 
     def test_bool_op(self):
@@ -49,10 +49,19 @@ class SQLStatementsTests(TestCase):
 
     def test_complex(self):
         stmt = (SelectStatement("user")
-                    .join("address", id="address_id")
+                    .join("address", id="user.address_id")
                     .filter(country_code='de')
                     .filter(zip_code__gt=10000)
                     .filter(zip_code__lt=15000)
                     .filter(or__first_name__ne="Paul")
                )
         self.assertEqual(unicode(stmt), "SELECT * FROM user JOIN address ON address.id = user.address_id WHERE country_code = ? AND zip_code > ? AND zip_code < ? OR first_name != ?;")
+
+    def test_table_name(self):
+        stmt = (SelectStatement("user")
+                    .join("upload", user_id="user.id")
+                    .join("file_meta_meta", id="upload.meta_data_id")
+                    .filter(file_meta_meta___size__gt=1024*1024)
+                    .filter(file_meta_meta___or__downloads__gt=1000)
+                )
+        self.assertEqual(unicode(stmt), "SELECT * FROM user JOIN upload ON upload.user_id = user.id JOIN file_meta_meta ON file_meta_meta.id = upload.meta_data_id WHERE file_meta_meta.size > ? OR file_meta_meta.downloads > ?;")
