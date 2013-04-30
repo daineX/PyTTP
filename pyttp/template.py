@@ -3,9 +3,8 @@ import os
 from .template_node import Node, EvalNode, TagNode, TextNode
 from .template_execution_node import ExecutionNodeRegistry
 
-from .config import global_config, ConfigException
-
-
+from .settings import get_settings
+settings = get_settings()
 
 class Template(object):
 
@@ -16,13 +15,13 @@ class Template(object):
         if search_path:
             self.search_path = search_path
         else:
-            self.search_path = global_config.getValue("TEMPLATE_SEARCH_PATH")
+            self.search_path = settings.TEMPLATE_SEARCH_PATH
         if not self.search_path:
             self.search_path = GLOBAL_SEARCH_PATH
 
         try:
-            self.context_processors = global_config.getValue("TEMPLATE_CONTEXT_PROCESSORS")
-        except ConfigException:
+            self.context_processors = settings.TEMPLATE_CONTEXT_PROCESSORS
+        except AttributeError:
             self.context_processors = []
 
     class ParseError(Exception):
