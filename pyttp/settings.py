@@ -10,4 +10,7 @@ class Settings(object):
 load = Settings
 
 def get_settings():
-    return Settings.inst
+    try:
+        return Settings.inst
+    except AttributeError:
+        return None
