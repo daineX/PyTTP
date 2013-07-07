@@ -142,6 +142,20 @@ class DataBaseDate(DataBaseType):
         import datetime
         return datetime.datetime.fromtimestamp(float(strRepr))
 
+class JSONType(DataBaseType):
+
+    def __call__(self, value=None):
+        import json
+        if value is None:
+            return None
+        return json.dumps(value)
+
+    def toPy(self, strRepr):
+        import json
+        if strRepr is None:
+            return {}
+        return json.loads(strRepr)
+
 class DataBaseBool(DataBaseType):
     
     def __init__(self):
