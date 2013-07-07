@@ -2,7 +2,7 @@ import sqlite3
 import copy
 
 global_connection = None
-debug = False
+debug = True
 
 def get_connection():
     return global_connection
@@ -66,6 +66,7 @@ class WhereStatement(SQLStatement):
               'ge': '>=',
               'le': '<=',
               'in': 'IN',
+              'nin': 'NOT IN',
               'like': 'LIKE',
               'ilike': 'ILIKE'}
 
