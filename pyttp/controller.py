@@ -63,14 +63,6 @@ class ControllerResponse(object):
         else:
             self.headers = []
 
-
-    def get_response(self):
-        return self.status, self.headers
-
-
-    def get_payload(self):
-        return self.payload
-
     def set_cookie(self, key, value, path="/", domain="", expires=""):
         cookie = Cookie.SimpleCookie()
         cookie[key] = value
@@ -79,6 +71,9 @@ class ControllerResponse(object):
         cookie[key]["expires"] = expires
         header_value = cookie.output(header="").lstrip()
         self.headers.append(("Set-Cookie", header_value))
+
+    def render(self):
+        return self.payload
 
 
 class EmptyResponse(ControllerResponse):
@@ -128,8 +123,7 @@ class TemplateResponse(ControllerResponse):
     def inject_request(self, request):
         self.context['request'] = request
 
-
-    def get_payload(self):
+    def render(self):
         return ''.join(Template.load_and_render(self.template,
                                                 self.context,
                                                 search_path=self.search_path))
@@ -151,8 +145,6 @@ class ControllerRequest(object):
 
         self.COOKIES = Cookie.SimpleCookie(environ.get("HTTP_COOKIE", {}))
 
-
-#TODO Form handling
 
 class Controller(object):
 
@@ -193,7 +185,7 @@ class Controller(object):
     """
 
 
-    def _dispatch(self, environ, path, query_string):
+    def _dispatch(self, path):
         """
         Dispatches the environ on a certain path to either a sub-controller
         or a method.
@@ -213,75 +205,17 @@ class Controller(object):
         except AttributeError:
             raise Http404
 
-
         if isinstance(lookup, Controller):
             # dispatch to sub-controller
             path = path[len(action):]
-            return lookup._dispatch(environ, path, query_string)
-
-
-        def process_field_storage(meth, field_storage, is_post):
-            kwargs = {}
-            for key in field_storage:
-                mf = field_storage[key]
-                if hasattr(meth, "expect_list") and key in meth.expect_list:
-                    if isinstance(mf, list):
-                        value = []
-                        for m in mf:
-                            val = m.value
-                            if isinstance(val, str):
-                                val = val.decode("utf-8")
-                            value.append(val)
-                    else:
-                        value = [mf.value]
-                    kwargs[key] = value
-                else:
-                    if isinstance(mf, list):
-                        value = mf[0].value
-                    else:
-                        if mf.filename: # return files as-is
-                            value = mf
-                        else:
-                            value = mf.value
-                            if (not is_post and value == ''
-                                and hasattr(meth, "expect_bool")
-                                and key in meth.expect_bool):
-                                    value = True
-                            if isinstance(value, str):
-                                try:
-                                    value = value.decode("utf-8")
-                                except UnicodeDecodeError:
-                                    pass
-                    kwargs[key] = value
-            if hasattr(meth, "expect_bool"):
-                for key in meth.expect_bool:
-                    if key not in kwargs:
-                        kwargs[key] = False
-            return kwargs
+            return lookup._dispatch(path)
 
         # delegate to method
         if callable(lookup) and hasattr(lookup, "exposed") and lookup.exposed:
-            import cgi
-            if environ["REQUEST_METHOD"] == 'POST':
-                fp = environ["wsgi.input"]
-                is_post = True
-            else:
-                fp = None
-                is_post = False
-            field_storage = cgi.FieldStorage(fp=fp,
-                                             environ=environ,
-                                             keep_blank_values=True)
-
-
             args = path_parts[1:]
-            kwargs = process_field_storage(lookup, field_storage, is_post)
-            request = ControllerRequest(environ, kwargs)
-            response = lookup(request, *args)
-            if hasattr(response, "inject_request"):
-                response.inject_request(request)
-            return response
-
-        raise Http404
+            return lookup, args
+        else:
+            raise Http404
 
 
 def defaulthandler404(request):
@@ -298,16 +232,30 @@ def defaulthandler404(request):
 class ControllerWSGIApp(object):
 
 
-    def __init__(self, root, handler404=defaulthandler404, handler500=None):
+    def __init__(self,
+                 root,
+                 handler404=defaulthandler404,
+                 handler500=None,
+                 req_processors=None,
+                 resp_processors=None):
         self.root = root
         self.handler404 = handler404
         self.handler500 = handler500
+        self.req_processors = req_processors or []
+        self.resp_processors = resp_processors or []
 
     def __call__(self, environ, start_response):
         path = environ["PATH_INFO"]
-        query_string = environ["QUERY_STRING"]
         try:
-            response = self.root._dispatch(environ, path, query_string)
+            handler, args = self.root._dispatch(path)
+            request = self.build_request(handler, environ)
+            for proc in self.req_processors:
+                request = proc(request)
+            response = handler(request, *args)
+            for proc in self.resp_processors:
+                response = proc(response, request)
+            if hasattr(response, "inject_request"):
+                response.inject_request(request)
         except Http404:
             response = self.handler404(environ)
 
@@ -320,10 +268,62 @@ class ControllerWSGIApp(object):
             else:
                 raise
 
-        status, headers = response.get_response()
-        start_response(status, headers)
+        start_response(response.status, response.headers)
 
-        yield response.get_payload()
+        yield response.render()
+
+
+    @staticmethod
+    def build_request(lookup, environ):
+        import cgi
+        if environ["REQUEST_METHOD"] == 'POST':
+            fp = environ["wsgi.input"]
+            is_post = True
+        else:
+            fp = None
+            is_post = False
+        field_storage = cgi.FieldStorage(fp=fp,
+                                        environ=environ,
+                                        keep_blank_values=True)
+        kwargs = {}
+        for key in field_storage:
+            mf = field_storage[key]
+            if hasattr(lookup, "expect_list") and key in lookup.expect_list:
+                if isinstance(mf, list):
+                    value = []
+                    for m in mf:
+                        val = m.value
+                        if isinstance(val, str):
+                            val = val.decode("utf-8")
+                        value.append(val)
+                else:
+                    value = [mf.value]
+                kwargs[key] = value
+            else:
+                if isinstance(mf, list):
+                    value = mf[0].value
+                else:
+                    if mf.filename: # return files as-is
+                        value = mf
+                    else:
+                        value = mf.value
+                        if (not is_post and value == ''
+                            and hasattr(lookup, "expect_bool")
+                            and key in lookup.expect_bool):
+                                value = True
+                        if isinstance(value, str):
+                            try:
+                                value = value.decode("utf-8")
+                            except UnicodeDecodeError:
+                                pass
+                kwargs[key] = value
+        if hasattr(lookup, "expect_bool"):
+            for key in lookup.expect_bool:
+                if key not in kwargs:
+                    kwargs[key] = False
+
+        request = ControllerRequest(environ, kwargs)
+        return request
 
 
 if __name__ == "__main__":
