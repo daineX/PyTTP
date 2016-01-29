@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+import re
 import types
 
 html_escape_table = {
@@ -11,10 +12,15 @@ html_escape_table = {
     u"<": u"&lt;",
     }
 
+REX = r'|'.join(html_escape_table.iterkeys())
+def get_replacement(match):
+    match = match.string
+    return html_escape_table.get(match, match)
+
 def html_escape(text):
     """Produce entities within text."""
     if isinstance(text, str) or isinstance(text, unicode):
-        return u"".join(html_escape_table.get(c,c) for c in text)
+        return re.sub(REX, get_replacement, text)
     else:
         return str(text)
 
