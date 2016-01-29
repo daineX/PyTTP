@@ -102,7 +102,9 @@ class ForNode(ExecutionNode):
     def __init__(self, line, parent=None):
         super(ForNode, self).__init__(line, parent)
 
-        _, self.var, in_, self.collection = self.line.split(' ', 3)
+        _, self._vars, in_, self.collection = self.line.split(' ', 3)
+        self._vars = self._vars.split(",")
+        self._vars_tuple = len(self._vars) > 1
         assert(in_ == "in")
 
 
@@ -112,7 +114,10 @@ class ForNode(ExecutionNode):
 
         res = u''
         for value in collection:
-            ctx.update({self.var: value})
+            if self._vars_tuple:
+                ctx.update(zip(self._vars, value))
+            else:
+                ctx[self._vars[0]] = value
             res += super(ExecutionNode, self).render(ctx, indent)
         return res
 

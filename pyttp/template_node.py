@@ -4,6 +4,7 @@ from pyttp.html import html_escape
 
 TAB_INDENT = 4
 
+g = globals()
 
 class Node(object):
 
@@ -39,7 +40,10 @@ class Node(object):
         return False
 
     def eval_code(self, context, markup, honor_autoescape=False):
-        value = eval(markup, globals(), context)
+        if markup in context:
+            value = context[markup]
+        else:
+            value = eval(markup, g, context)
         if callable(value):
             value = value()
         if honor_autoescape:

@@ -303,5 +303,16 @@ class RenderTests(unittest.TestCase):
 
         self.assertEqual(expected, rendered)
 
+    def test_for(self):
+        markup = """\
+%tr
+  -for key,value in data.iteritems()
+    %th= key
+    %td= value"""
+        ctx = dict(data={'foo': 'bar', 'spam': 'eggs'})
+        rendered = ''.join(self.template.render(markup, ctx))
+        expected = '\n<tr>\n    <th>foo</th>\n    <td>bar</td>\n    <th>spam</th>\n    <td>eggs</td>\n</tr>'
+        self.assertEqual(rendered, expected)
+
 if __name__ == "__main__":
     unittest.main()
