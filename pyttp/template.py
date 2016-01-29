@@ -15,9 +15,12 @@ class Template(object):
         if search_path:
             self.search_path = search_path
         else:
-            self.search_path = settings.TEMPLATE_SEARCH_PATH
+            try:
+                self.search_path = settings.TEMPLATE_SEARCH_PATH
+            except AttributeError:
+                self.search_path = None
         if not self.search_path:
-            self.search_path = GLOBAL_SEARCH_PATH
+            self.search_path = self.GLOBAL_SEARCH_PATH
 
         try:
             self.context_processors = settings.TEMPLATE_CONTEXT_PROCESSORS
