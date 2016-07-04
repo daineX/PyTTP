@@ -24,9 +24,9 @@ class SQLStatement(object):
     def __init__(self, proxy=None, conn=None):
         self.proxy = proxy
         if conn:
-            self.conn = conn
+            self.connection = conn
         else:
-            self.conn = get_connection()
+            self.connection = get_connection()
 
     def _values(self):
         raise NotImplementedError
@@ -41,7 +41,7 @@ class SQLStatement(object):
         values = self._values()
         if debug:
             print "VALUES:", values
-        return self.conn.execute(query, tuple(values))
+        return self.connection.execute(query, tuple(values))
 
     def proxy_execute(self):
         assert self.proxy
@@ -332,5 +332,5 @@ class RawStatement(SQLStatement):
         super(RawStatement, self).__init__(proxy=proxy, conn=conn)
 
     def execute(self, raw, *values):
-        self.conn.execute(raw, values)
+        self.connection.execute(raw, values)
 
