@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import socket
 import multiprocessing
-from core import *
+from pyttp.core import *
 import datetime, time
 import sys
-    
-import Queue
+
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 import threading
 
 import ssl
@@ -40,22 +44,21 @@ class HTTPListener(object):
 
     def handlerDispatch(self, queue, i, conn, addr, dt):
         self.handler(conn, addr)
-        print "%sµs" % ((datetime.datetime.now() - dt).microseconds)
+        print("%sµs" % ((datetime.datetime.now() - dt).microseconds))
         queue.put(i)
         
     def serve(self):
         self.queue = multiprocessing.Queue()
         count = 0
         while self.handlerRegistered:
-            print count
+            print(count)
             count += 1
             self.socket.listen(1)
             (conn, addr) = self.socket.accept()
-            #self.handler(conn, addr)
-            print 'Number of processes: ', len(self.processes)
+
+            print('Number of processes: ', len(self.processes))
             finished = []
             now = datetime.datetime.now()
-#            for i in range(len(self.processes)):
             for i in self.processes:
                 try:
                     finished.append(self.queue.get_nowait())
@@ -65,9 +68,9 @@ class HTTPListener(object):
                     if self.timeout:
                          if (now - start).seconds > timeout:
                             finished.append(i)
-                    print "Finished process %s" % finished
-                except Exception, e:
-                    print e
+                    print("Finished process %s" % finished)
+                except Exception as e:
+                    print(e)
 #            self.processes = [p for i, p in enumerate(self.processes[:]) if i not in finished]
             self.processes = dict([(i, p) for i, p in self.processes.items() if i not in finished])
             now = datetime.datetime.now()
@@ -138,14 +141,14 @@ class ParallelSocketListener(object):
                 now = datetime.datetime.now()
                 timeSpan = (now - startTimes[pid]).microseconds
                 areRunning -= 1
-                print "Request took %sµs" % timeSpan
+                print("Request took %sµs" % timeSpan)
 
             cycle += 1
-            print cycle, self.state
+            print(cycle, self.state)
 
 
     def handlerDispatch(self, inputQueue, outputQueue, pid, port, handler):
-        print "Process %s started." % pid
+        print("Process %s started." % pid)
         while True:
             action = inputQueue.get()
 #            print action
@@ -188,13 +191,13 @@ class ThreadedSocketListener(object):
         atexit.register(self.clearThreads)
             
     def clearThreads(self):
-        print "Cleaning up ...\n"
-        print "\tThreads ...",
+        print("Cleaning up ...\n")
+        print("\tThreads ...")
         for tid in range(self.nThreads):    
             self.queue.put((None, None))
         for thread in self.threads:
             thread.join()
-        print " done."
+        print(" done.")
 
     def serve(self):
         for tid in range(self.nThreads):
@@ -203,14 +206,14 @@ class ThreadedSocketListener(object):
         try:        
             listenSocket = socket.socket()
             listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            print "Binding ...",
+            print("Binding ...")
             while True:
                 try:
                     listenSocket.bind(('', self.port))
                     break
                 except:
                     continue
-            print " succesful."
+            print(" succesful.")
                 
                 
             listenSocket.listen(5)
@@ -222,9 +225,9 @@ class ThreadedSocketListener(object):
         except KeyboardInterrupt:
             self.clearThreads()
             listenSocket.close()
-            print "Served %s connections." % cycle
-        except Exception, e:
-            print e
+            print("Served %s connections." % cycle)
+        except Exception as e:
+            print(e)
             self.clearThreads()
             listenSocket.close()
 

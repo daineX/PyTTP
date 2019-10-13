@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import print_function
 
 import types
 
@@ -130,7 +130,7 @@ class DTD(object):
     def __init__(self, root, kind, fpi, uri=None):
         self.root = root
         if kind not in ("PUBLIC", "SYSTEM"):
-            raise Exception, "Invalid DTD kind!"
+            raise Exception("Invalid DTD kind!")
         self.kind = kind
         self.fpi = fpi
         self.uri = uri
@@ -176,7 +176,7 @@ __tags = ['a', 'abbr', 'acronym', 'address', 'applet', 'area',
 
 for __tag in __tags:
     __ntag = __tag.strip("_")
-    exec "%s = type('%s', (Tag,), {'name': '%s'})" % (__tag, __ntag, __ntag)
+    exec ("%s = type('%s', (Tag,), {'name': '%s'})" % (__tag, __ntag, __ntag))
 blank = type('blank', (Tag,), {'name': '', 
                                'ldel': '',
                                'rdel': '',
@@ -191,9 +191,9 @@ noEscapeBlank = type('noescapeBlank', (Tag,), {'name': '',
 
 
 if __name__ == "__main__":
-    print str(html(head(title("This is a Test!")))(nonExistentAttr="bogusValue"))
-    print PublicDTD("html", "-//W3C//DTD XHTML 1.0 Transitional//EN", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd")
-    print Comment("This is a comment!")
+    print(str(html(head(title("This is a Test!")))(nonExistentAttr="bogusValue")))
+    print(PublicDTD("html", "-//W3C//DTD XHTML 1.0 Transitional//EN", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"))
+    print(Comment("This is a comment!"))
     
     src = \
     html(
@@ -209,7 +209,7 @@ if __name__ == "__main__":
         )
     )
     
-    print str(src)
+    print(str(src))
     
     links = ['index.py', 'img.py', 'dem.py']
     
@@ -222,4 +222,4 @@ if __name__ == "__main__":
     
     inner.add((a(href=link)(link) for link in links),(br() for i in range(10)), "demPuppies")
     
-    print str(src)
+    print(str(src))

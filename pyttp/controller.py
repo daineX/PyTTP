@@ -1,7 +1,10 @@
 import cgi
-import Cookie
 import string
-import urlparse
+
+try:
+    import Cookie
+except:
+    import http.cookies as Cookie
 
 from pyttp.template import Template
 
@@ -28,14 +31,14 @@ def expose(func):
 
 def validate(**validator_mapping):
     def decorator(func):
-        def inner(*args, **kwargs):
-            for kwarg in kwargs:
+        def inner(controller, request, *args, **quargs):
+            for kwarg in request.REQUEST:
                 if kwarg in validator_mapping:
-
-                    new_val = validator_mapping[kwarg](kwargs[kwarg])
+                    new_val = validator_mapping[kwarg](request.REQUEST[kwarg])
                     if new_val is not None:
-                            kwargs[kwarg] = new_val
-            return func(*args, **kwargs)
+                        request.REQUEST[kwarg] = new_val
+                        quargs[kwarg] = new_val
+            return func(controller, request, *args, **quargs)
         return inner
     return decorator
 
@@ -50,7 +53,7 @@ def inject_header(header):
     return decorator
 
 
-class ControllerResponse(object):
+class ControllerResponse:
     """
     Response to be returned by actions as expected by the ControllerWSGIApp.
     """
@@ -259,10 +262,10 @@ class ControllerWSGIApp(object):
         except Http404:
             response = self.handler404(environ)
 
-        except Redirection, redirect:
+        except Redirection as redirect:
             response = RedirectionResponse(redirect.location)
 
-        except Exception, e:
+        except Exception as e:
             if self.handler500:
                 response = self.handler500(environ, e)
             else:
@@ -314,7 +317,7 @@ class ControllerWSGIApp(object):
                         if isinstance(value, str):
                             try:
                                 value = value.decode("utf-8")
-                            except UnicodeDecodeError:
+                            except (AttributeError, UnicodeDecodeError):
                                 pass
                 kwargs[key] = value
         if hasattr(lookup, "expect_bool"):

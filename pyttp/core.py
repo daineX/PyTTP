@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import print_function
 
 class PyTTPException(Exception):
     pass
@@ -77,19 +77,19 @@ class RequestParser(object):
     
     
     def parse(self, requestString):
-        the_request = requestString.split('\r\n\r\n')
+        the_request = requestString.split(b'\r\n\r\n')
         requestHeaderString = the_request[0]
         try:
-            payload = '\r\n\r\n'.join(the_request[1:])
+            payload = b'\r\n\r\n'.join(the_request[1:])
         except:
             raise RequestParserException("Malformed Request!", requestString)
         try:
-            lines = requestString.split('\r\n')
+            lines = requestString.split(b'\r\n')
         except AttributeError:
             raise RequestParserException("Expected string!", requestString)
         try:
             typeString = lines[0]
-            verb, resource, version = typeString.split(' ')
+            verb, resource, version = typeString.decode().split(' ')
         except ValueError:
             raise RequestParserException("Malformed type!", requestString)
         type = Type(verb, resource, version)
@@ -99,7 +99,7 @@ class RequestParser(object):
             try:
                 if not headerString:
                     continue
-                fields = headerString.split(':')
+                fields = headerString.decode().split(':')
                 name = fields[0]
                 value = (':'.join(fields[1:])).strip(' ')
                 headers.append(Header(name, value))
@@ -175,18 +175,18 @@ if __name__ == "__main__":
     s.bind(('', int(sys.argv[1])))
     s.listen(1)
     (conn, addr) = s.accept()
-    print "Connection from", addr
+    print("Connection from", addr)
     
     request = ''
     while True:
         data = conn.recv(1024)
-        print data
+        print(data)
         request += data
         if not data or data.endswith("\r\n\r\n"): break
     
     reqParsed, payload = RequestParser().parse(request)
     
-    print repr(reqParsed)
+    print(repr(reqParsed))
     
     payload = "Nichts zu sehen!"
     
@@ -199,23 +199,11 @@ if __name__ == "__main__":
     headers.append(Header("Date", datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S UTC")))
     
     response = Response(status, headers, payload)
-    print response
+    print(response)
    
     
     conn.send(str(response))
     
     conn.close()
     s.close()
-    #s = socket.socket()
-    #s.connect(('en.wikipedia.org', 80))
     
-    #print str(req)
-    #s.send(str(req))
-    #response = ''
-    #while (True):
-        #frag = s.recv(1024)
-        #response += frag
-        #if len(frag) == 0:
-            #break
-        #print frag
-    #print response

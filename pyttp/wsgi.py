@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-
-import network
+from __future__ import print_function
+from pyttp import network
 import os
 import socket
 import ssl
@@ -8,13 +8,13 @@ import sys
 import time
 import types
 
-from core import *
+from pyttp.core import *
 
 class DummyLogger(object):
 
     def log(self, severity, message):
         if __debug__:
-            print "%s: %s" % (severity, message)
+            print("%s: %s" % (severity, message))
 
 
 class SocketExhausted(Exception):
@@ -27,8 +27,8 @@ class DefaultHandler(object):
         pass
 
     def readRequest(self, conn, addr):
-        request = ''
-        last4 = ''
+        request = b''
+        last4 = b''
         verb = conn.recv(4)
         self.start_time = time.time()
         request += verb
@@ -46,7 +46,7 @@ class DefaultHandler(object):
                 request += data
                 if not data:
                     raise SocketExhausted
-                if last4 == '\r\n\r\n':
+                if last4 == b'\r\n\r\n':
                     break
         else:
             while True:
@@ -57,7 +57,7 @@ class DefaultHandler(object):
                 request += data
                 if not data:
                     raise SocketExhausted
-                if data.endswith('\r\n\r\n'):
+                if data.endswith(b'\r\n\r\n'):
                     break
         return ready, RequestParser().parse(request)
 
@@ -194,13 +194,9 @@ class WSGIHandler(DefaultHandler):
         Arguments:
         chunk -- chunked data to chunkify;
         """
-        try:
-            chunk = chunk.encode("utf-8")
-        except:
-            pass
         chunkLength = len(chunk)
         chunkSize = hex(chunkLength)[2:]
-        return "%s\r\n%s\r\n" % (chunkSize, chunk)
+        return "{}\r\n{}\r\n".format(chunkSize, chunk).encode()
 
 
     def __call__(self, conn, addr):
@@ -267,7 +263,7 @@ class WSGIHandler(DefaultHandler):
                     chunkedEncoding = True
                     #get first chunk so that start_response will be called now
                     try:
-                        self.firstChunk = payload.next()
+                        self.firstChunk = next(payload)
                     except StopIteration:
                         self.firstChunk = ""
                 else:
@@ -287,14 +283,14 @@ class WSGIHandler(DefaultHandler):
                 try:
                     statusCode = int(self.status[:3])
                     statusString = self.status[3:]
-                except Exception, e:
+                except Exception as e:
                     statusCode = '200'
                     statusString = 'OK'
                 status = Status("HTTP/1.1", statusCode, statusString)
 
                 #send headers
                 resp = Response(status, headers, self.prePayload)
-                conn.sendall(str(resp))
+                conn.sendall(str(resp).encode())
 
                 if chunkedEncoding:
                     self.logger.log("INFO","Using chunked transfer encoding")
@@ -325,11 +321,11 @@ class WSGIHandler(DefaultHandler):
                     pass
                 break
 
-            except Exception, e:
+            except Exception as e:
                 import traceback
                 formatted_exception = ''.join(traceback.format_exception(*sys.exc_info()))
                 if self.debug:
-                    print "[DEBUG]:", formatted_exception
+                    print("[DEBUG]:", formatted_exception)
                 if self.logger:
                     self.logger.log("EXC", formatted_exception)
                 else:
