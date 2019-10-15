@@ -74,7 +74,7 @@ class JSVisitor(NodeVisitor):
     def visit_Lt(self, node):
         return "<"
 
-    def visit_Lt(self, node):
+    def visit_LtE(self, node):
         return "<="
 
     def visit_Compare(self, node):
