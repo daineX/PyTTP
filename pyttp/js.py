@@ -1,4 +1,4 @@
-from ast import parse, NodeVisitor
+from ast import parse, Module, NodeVisitor
 from inspect import getsource
 from textwrap import dedent
 
@@ -13,7 +13,6 @@ class JSVisitor(NodeVisitor):
 
     def __init__(self):
         self.result = []
-        self.found_outer_func = False
 
     def generic_visit(self, node):
         raise NotImplementedError()
@@ -25,26 +24,22 @@ class JSVisitor(NodeVisitor):
         return self.CONSTANTS[node.value]
 
     def visit_FunctionDef(self, node):
-        have_outer_func = self.found_outer_func
-        self.found_outer_func = True
-        if have_outer_func:
-            self.result.append(f"function {node.name} (")
-            args = []
-            for arg in node.args.args:
-                args.append(arg.arg)
-            self.result.append(', '.join(args))
-            self.result.append(") {")
+        self.result.append(f"function {node.name} (")
+        args = []
+        for arg in node.args.args:
+            args.append(arg.arg)
+        self.result.append(', '.join(args))
+        self.result.append(") {")
         for child in node.body:
             self.visit(child)
-        if have_outer_func:
-            self.result.append("}")
-            for decorator in node.decorator_list:
-                call = self.visit(decorator)
-                if call.endswith(")"):
-                    call = call[:-1]
-                    self.result.append(f"{node.name} = {call}, {node.name});")
-                else:
-                    self.result.append(f"{node.name} = {call}({node.name});")
+        self.result.append("}")
+        for decorator in node.decorator_list:
+            call = self.visit(decorator)
+            if call.endswith(")"):
+                call = call[:-1]
+                self.result.append(f"{node.name} = {call}, {node.name});")
+            else:
+                self.result.append(f"{node.name} = {call}({node.name});")
 
     def visit_Assign(self, node):
         value = self.visit(node.value)
@@ -169,8 +164,14 @@ class JSVisitor(NodeVisitor):
         return ''.join(self.result)
 
 
-def toJS(func):
-    tree = parse(dedent(getsource(func)))
+def treeFromObj(obj):
+    return parse(dedent(getsource(obj)))
+
+def toJS(*objs):
+    body = []
+    for obj in objs:
+        body.extend(treeFromObj(obj).body)
+    tree = Module(body=body)
     visitor = JSVisitor()
     visitor.visit(tree)
     return visitor.toJS()
