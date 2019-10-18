@@ -1,9 +1,47 @@
-from ast import parse, Module, NodeVisitor
+from ast import ClassDef, parse, Module, NodeVisitor
+import ast
 from inspect import getsource
 from textwrap import dedent
 
 
+__all__ = ['toJS']
+
+class RootSentinel:
+
+    def __repr__(self):
+        return "Root"
+
+OPS = {
+    ast.Add: "+",
+    ast.Sub: "-",
+    ast.Mult: "*",
+    ast.Div: "/",
+    ast.FloorDiv: "/",
+    ast.Mod: "%",
+    ast.And: "&&",
+    ast.BitAnd: "&",
+    ast.BitOr: "|",
+    ast.BitXor: "^",
+    ast.Eq: "===",
+    ast.Gt: ">",
+    ast.GtE: ">=",
+    ast.Lt: "<",
+    ast.LtE: "<=",
+    ast.LShift: "<<",
+    ast.RShift: ">>",
+    ast.NotEq: "!==",
+    ast.Not: "!",
+    ast.Invert: "~",
+    ast.Pass: ";",
+    ast.Or: "||",
+
+    # Use @= to mark variables as local.
+    ast.MatMult: "var",
+}
+
 class JSVisitor(NodeVisitor):
+
+    ROOT = RootSentinel()
 
     CONSTANTS = {
         False: "false",
@@ -11,28 +49,27 @@ class JSVisitor(NodeVisitor):
         None: "undefined",
     }
 
-    def __init__(self):
+    def __init__(self, debug=False):
         self.result = []
+        self.ctx_stack = [self.ROOT]
+        self.debug = debug
+
+    @property
+    def context(self):
+        return self.ctx_stack[-1]
 
     def generic_visit(self, node):
-        raise NotImplementedError()
+        node_type = type(node)
+        if node_type in OPS:
+            return OPS[node_type]
+        raise NotImplementedError(type(node).__name__)
 
-    def visit_Module(self, node):
-        return super().generic_visit(node)
+    def visit(self, node):
+        if self.debug:
+            print(node, self.ctx_stack)
+        return super().visit(node)
 
-    def visit_NameConstant(self, node):
-        return self.CONSTANTS[node.value]
-
-    def visit_FunctionDef(self, node):
-        self.result.append(f"function {node.name} (")
-        args = []
-        for arg in node.args.args:
-            args.append(arg.arg)
-        self.result.append(', '.join(args))
-        self.result.append(") {")
-        for child in node.body:
-            self.visit(child)
-        self.result.append("}")
+    def decorate(self, node):
         for decorator in node.decorator_list:
             call = self.visit(decorator)
             if call.endswith(")"):
@@ -41,10 +78,48 @@ class JSVisitor(NodeVisitor):
             else:
                 self.result.append(f"{node.name} = {call}({node.name});")
 
+    def iterate(self, node):
+        self.ctx_stack.append(type(node))
+        for child in node.body:
+            self.visit(child)
+        self.ctx_stack.pop()
+
+    def visit_ClassDef(self, node):
+        self.result.append(f"class {node.name}")
+        if node.bases:
+            if len(node.bases) > 1:
+                raise NotImplementedError("Classes cannot have more than one base.")
+            base = self.visit(node.bases[0])
+            self.result.append(f" extends {base}")
+        self.result.append(" {")
+        self.iterate(node)
+        self.result.append("}")
+        self.decorate(node)
+
+    def visit_Module(self, node):
+        return super().generic_visit(node)
+
+    def visit_NameConstant(self, node):
+        return self.CONSTANTS[node.value]
+
+    def visit_FunctionDef(self, node):
+        if self.context is not ClassDef:
+            self.result.append("function ")
+        self.result.append(f"{node.name} (")
+        args = []
+        for arg in node.args.args:
+            args.append(arg.arg)
+        self.result.append(', '.join(args))
+        self.result.append(") {")
+        self.iterate(node)
+        self.result.append("}")
+        self.decorate(node)
+
     def visit_Assign(self, node):
-        value = self.visit(node.value)
+        v = self.visit(node.value)
         for target in node.targets:
-            self.result.append(f"{target.id} = {value};")
+            t = self.visit(target)
+            self.result.append(f"{t} = {v};")
 
     def visit_AugAssign(self, node):
         value = self.visit(node.value)
@@ -60,17 +135,10 @@ class JSVisitor(NodeVisitor):
         left = self.visit(node.left)
         return f"{left} {op} {right}"
 
-    def visit_Gt(self, node):
-        return ">"
-
-    def visit_GtE(self, node):
-        return ">="
-
-    def visit_Lt(self, node):
-        return "<"
-
-    def visit_LtE(self, node):
-        return "<="
+    def visit_UnaryOp(self, node):
+        op = self.visit(node.op)
+        operand = self.visit(node.operand)
+        return f"{op} {operand}"
 
     def visit_Compare(self, node):
         comps = [self.visit(c) for c in node.comparators]
@@ -82,8 +150,7 @@ class JSVisitor(NodeVisitor):
     def visit_If(self, node):
         t = self.visit(node.test)
         self.result.append(f"if ({t}) {{")
-        for child in node.body:
-            self.visit(child)
+        self.iterate(node)
         self.result.append("}")
         if node.orelse:
             self.result.append(" else ")
@@ -93,15 +160,6 @@ class JSVisitor(NodeVisitor):
                 self.visit(orelse)
             if len(node.orelse) > 1:
                 self.result.append("}")
-
-    def visit_Add(self, node):
-        return "+"
-
-    def visit_Sub(self, node):
-        return "-"
-
-    def visit_MatMult(self, node):
-        return "var"
 
     def visit_Dict(self, node):
         items = []
@@ -160,19 +218,49 @@ class JSVisitor(NodeVisitor):
         elems = ", ".join(self.visit(e) for e in node.elts)
         return f"[{elems}]"
 
+    def visit_For(self, node):
+        if node.orelse:
+            raise NotImplementedError("for: else: is not supported.")
+        target = self.visit(node.target)
+        it = self.visit(node.iter)
+        self.result.append(f"for ({target} in {it}) {{")
+        self.iterate(node)
+        self.result.append("}")
+
+    def visit_While(self, node):
+        if node.orelse:
+            raise NotImplementedError("while: else: is not supported.")
+        test = self.visit(node.test)
+        self.result.append(f"while ({test}) {{")
+        self.iterate(node)
+        self.result.append("}")
+
+    def visit_Break(self, node):
+        self.result.append("break;")
+
+    def visit_Continue(self, node):
+        self.result.append("continue;")
+
     def toJS(self):
         return ''.join(self.result)
+
+
+def environment():
+
+    def bool(obj):
+        return not not obj
 
 
 def treeFromObj(obj):
     return parse(dedent(getsource(obj)))
 
-def toJS(*objs):
+def toJS(*objs, debug=False):
     body = []
+    body.extend(treeFromObj(environment).body[0].body)
     for obj in objs:
         body.extend(treeFromObj(obj).body)
     tree = Module(body=body)
-    visitor = JSVisitor()
+    visitor = JSVisitor(debug=debug)
     visitor.visit(tree)
     return visitor.toJS()
 
@@ -180,8 +268,30 @@ def toJS(*objs):
 if __name__ == "__main__":
 
     def toCompile():
+
+        class Foo(object):
+
+            def constructor(a):
+                this.a = a
+
+            def bar():
+                return this.a
+
+        myList @= [1, 2, 3]
+        for i in myList:
+            jq(".foo").text(i)
+            if i > 1:
+                break
+
+        idx @= 0
+        while idx < 3:
+            idx += 1
+            continue
+
+        bool(2)
+
         def anonymous(jq):
-            foo = jq(".foo")
+            foo = Foo(1, {"foo": "bar"})
 
             @foo.on('click')
             def trigger():
@@ -195,4 +305,4 @@ if __name__ == "__main__":
                 )
 
         anonymous(window.jQuery)
-    print(toJS(toCompile))
+    print(toJS(toCompile, debug=True))
