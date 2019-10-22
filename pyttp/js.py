@@ -1,4 +1,14 @@
-from ast import ClassDef, Module, Name, NodeVisitor, parse
+from ast import (
+    ClassDef,
+    Expr,
+    FunctionDef,
+    Module,
+    Name,
+    NodeVisitor,
+    parse,
+    Yield,
+    YieldFrom,
+)
 import ast
 from inspect import getsource
 from textwrap import dedent
@@ -49,7 +59,6 @@ class JSVisitor(NodeVisitor):
         True: "true",
         None: "undefined",
     }
-    GENERATOR_FUNC = "generator"
 
     def __init__(self, debug=False):
         self.result = []
@@ -115,14 +124,24 @@ class JSVisitor(NodeVisitor):
             args.append("..." + node.vararg.arg)
         return ', '.join(args)
 
+    def find_node(self, node, node_types):
+        t = type(node)
+        if t in node_types:
+            return True
+        if hasattr(node, "body"):
+            return any(self.find_node(child, node_types) for child in node.body)
+        if t is Expr:
+            return self.find_node(node.value, node_types)
+        return False
+
+    def is_generator_function(self, node):
+        if type(node) is not FunctionDef:
+            return False
+        return self.find_node(node, {Yield, YieldFrom})
+
     def visit_FunctionDef(self, node):
         if self.context is not ClassDef:
-            is_generator = False
-            for deco in node.decorator_list[:]:
-                if type(deco) is Name and deco.id == self.GENERATOR_FUNC:
-                    is_generator = True
-                    node.decorator_list.remove(deco)
-            if is_generator:
+            if self.is_generator_function(node):
                 self.result.append("function* ")
             else:
                 self.result.append("function ")
@@ -248,6 +267,10 @@ class JSVisitor(NodeVisitor):
             v = self.visit(node.value)
             return f"yield {v}"
 
+    def visit_YieldFrom(self, node):
+        v = self.visit(node.value)
+        return f"for (let yieldVar of {v}) yield yieldVar"
+
     def visit_List(self, node):
         elems = ", ".join(self.visit(e) for e in node.elts)
         return f"[{elems}]"
@@ -341,6 +364,7 @@ def toJS(*objs, debug=False):
     visitor.visit(tree)
     return visitor.toJS()
 
+
 if __name__ == "__main__":
 
     def toCompile():
@@ -369,10 +393,10 @@ if __name__ == "__main__":
         for x in Object.keys({"foo": "bar"}):
             x
 
-        @generator
         def gen(it):
             for x in it:
                 yield x + 1
+            yield from it
 
         g = gen([1, 2, 3])
         for x in g:
