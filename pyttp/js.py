@@ -1,4 +1,4 @@
-from ast import ClassDef, parse, Module, NodeVisitor
+from ast import ClassDef, Module, Name, NodeVisitor, parse
 import ast
 from inspect import getsource
 from textwrap import dedent
@@ -41,6 +41,7 @@ OPS = {
 
 class JSVisitor(NodeVisitor):
 
+
     ROOT = RootSentinel()
 
     CONSTANTS = {
@@ -48,6 +49,7 @@ class JSVisitor(NodeVisitor):
         True: "true",
         None: "undefined",
     }
+    GENERATOR_FUNC = "generator"
 
     def __init__(self, debug=False):
         self.result = []
@@ -84,6 +86,9 @@ class JSVisitor(NodeVisitor):
             self.visit(child)
         self.ctx_stack.pop()
 
+    def visit_Import(self, node):
+        return ""
+
     def visit_ClassDef(self, node):
         self.result.append(f"class {node.name}")
         if node.bases:
@@ -102,14 +107,27 @@ class JSVisitor(NodeVisitor):
     def visit_NameConstant(self, node):
         return self.CONSTANTS[node.value]
 
+    def visit_arguments(self, node):
+        args = []
+        for arg in node.args:
+            args.append(arg.arg)
+        if node.vararg:
+            args.append("..." + node.vararg.arg)
+        return ', '.join(args)
+
     def visit_FunctionDef(self, node):
         if self.context is not ClassDef:
-            self.result.append("function ")
+            is_generator = False
+            for deco in node.decorator_list[:]:
+                if type(deco) is Name and deco.id == self.GENERATOR_FUNC:
+                    is_generator = True
+                    node.decorator_list.remove(deco)
+            if is_generator:
+                self.result.append("function* ")
+            else:
+                self.result.append("function ")
         self.result.append(f"{node.name} (")
-        args = []
-        for arg in node.args.args:
-            args.append(arg.arg)
-        self.result.append(', '.join(args))
+        self.result.append(self.visit(node.args))
         self.result.append(") {")
         self.iterate(node)
         self.result.append("}")
@@ -120,6 +138,8 @@ class JSVisitor(NodeVisitor):
         for target in node.targets:
             t = self.visit(target)
             self.result.append(f"{t} = {v};")
+
+    visit_AnnAssign = visit_Assign
 
     def visit_AugAssign(self, node):
         value = self.visit(node.value)
@@ -133,6 +153,13 @@ class JSVisitor(NodeVisitor):
         right = self.visit(node.right)
         op = self.visit(node.op)
         left = self.visit(node.left)
+        return f"{left} {op} {right}"
+
+    def visit_BoolOp(self, node):
+        left, right = node.values
+        left = self.visit(left)
+        op = self.visit(node.op)
+        right = self.visit(right)
         return f"{left} {op} {right}"
 
     def visit_UnaryOp(self, node):
@@ -214,16 +241,46 @@ class JSVisitor(NodeVisitor):
             v = self.visit(node.value)
             self.result.append(f"return {v};")
 
+    def visit_Yield(self, node):
+        if node.value is None:
+            return "yield"
+        else:
+            v = self.visit(node.value)
+            return f"yield {v}"
+
     def visit_List(self, node):
         elems = ", ".join(self.visit(e) for e in node.elts)
         return f"[{elems}]"
+
+    visit_Tuple = visit_List
+
+    def visit_ListComp(self, node):
+        gen = node.generators[0]
+        if len(node.generators) > 1 or len(gen.ifs) > 1:
+            raise NotImplementedError("Multi-dimensional list comprehensions are not supported.")
+        r = []
+        r.append("(function (it) {var r = [];")
+        target = self.visit(gen.target)
+        r.append(f"for ({target} of it) {{")
+        if gen.ifs:
+            ifs = gen.ifs[0]
+            pred = self.visit(ifs)
+            r.append(f"if ({pred}) {{")
+        elem = self.visit(node.elt)
+        r.append(f"r.push({elem});")
+        if gen.ifs:
+            r.append("}")
+        r.append("} return r;")
+        iter_ = self.visit(gen.iter)
+        r.append(f"}})({iter_})")
+        return ''.join(r)
 
     def visit_For(self, node):
         if node.orelse:
             raise NotImplementedError("for: else: is not supported.")
         target = self.visit(node.target)
         it = self.visit(node.iter)
-        self.result.append(f"for ({target} in {it}) {{")
+        self.result.append(f"for ({target} of {it}) {{")
         self.iterate(node)
         self.result.append("}")
 
@@ -241,7 +298,18 @@ class JSVisitor(NodeVisitor):
     def visit_Continue(self, node):
         self.result.append("continue;")
 
+    def visit_Starred(self, node):
+        v = self.visit(node.value)
+        return f"...{v}"
+
+    def visit_Lambda(self, node):
+        args = self.visit(node.args)
+        body = self.visit(node.body)
+        return f"(({args}) => {{return {body}}})"
+
     def toJS(self):
+        if self.debug:
+            print(self.result)
         return ''.join(self.result)
 
 
@@ -249,6 +317,15 @@ def environment():
 
     def bool(obj):
         return not not obj
+
+    def int(obj):
+        return obj - 0
+
+    def float(obj):
+        return obj - 0.0
+
+    def str(obj):
+        return obj + ""
 
 
 def treeFromObj(obj):
@@ -263,7 +340,6 @@ def toJS(*objs, debug=False):
     visitor = JSVisitor(debug=debug)
     visitor.visit(tree)
     return visitor.toJS()
-
 
 if __name__ == "__main__":
 
@@ -290,6 +366,18 @@ if __name__ == "__main__":
 
         bool(2)
 
+        for x in Object.keys({"foo": "bar"}):
+            x
+
+        @generator
+        def gen(it):
+            for x in it:
+                yield x + 1
+
+        g = gen([1, 2, 3])
+        for x in g:
+            console.log(x)
+
         def anonymous(jq):
             foo = Foo(1, {"foo": "bar"})
 
@@ -305,4 +393,16 @@ if __name__ == "__main__":
                 )
 
         anonymous(window.jQuery)
+        a, b = 2, 3
+
+        c = [x + 2 for x in [1, 2, 3] if x % 2 == 0]
+
+        def p(*args):
+            console.log(*args)
+        p(a, b, c)
+
+        (lambda x: x + 1)(2)
+
+        foo = sep or ' '
+
     print(toJS(toCompile, debug=True))
