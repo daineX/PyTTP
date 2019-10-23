@@ -5,7 +5,7 @@ import types
 
 html_escape_table = {
     u"&": u"&amp;",
-    u'"': u"&quot;",
+    '"': u"&quot;",
     u"'": u"&apos;",
     u">": u"&gt;",
     u"<": u"&lt;",
@@ -22,7 +22,8 @@ def html_escape(text):
 
 class Tag(object):
     
-    name = u''
+    class_replacement= "class_"
+    name = ''
     ldel = u"<"
     rdel = u">"
     edel = u"/>"
@@ -59,37 +60,35 @@ class Tag(object):
                 self.childs.append(item)
         
     def __str__(self):
-        return str(self.toStr())
-
-    def __unicode__(self):
         return self.toStr()
         
     def toStr(self, depth=0):
         if len(self.attributes):
             attributeStr = []
             for attr, value in self.attributes.items():
+                if attr == self.class_replacement:
+                    attr = "class"
                 if value is not None:
-                    attributeStr.append(u'%s="%s"' % (attr, value))
+                    attributeStr.append('%s="%s"' % (attr, value))
                 else:
-                    attributeStr.append(u'%s="%s"' % (attr, attr))
+                    attributeStr.append('%s="%s"' % (attr, attr))
             attributeStr = self.ldel+self.name+" "+' '.join(attributeStr)
         else:
             attributeStr = self.ldel+self.name
         #self.attributes = {}
         lastIsTag = True
-        childStr = u''
+        childStr = ''
         if not len(self.childs):
-            return (attributeStr+self.edel+u'\n')
+            return (attributeStr+self.edel+'\n')
         for x in self.childs:
             if not isinstance(x, Tag):
-                if isinstance(x, str):
+                if isinstance(x, bytes):
                     try:
                         x = x.decode("utf-8")
                     except:
                         pass
                 else:
-                    x = unicode(x)
-                assert isinstance(x, unicode)
+                    x = str(x)
                 if self.doEscape:
                     childStr += html_escape(x)
                 else:
@@ -98,17 +97,17 @@ class Tag(object):
             else:
                 if lastIsTag:
                     if isinstance(x, blank):
-                        childStr += (u'  '*(depth+1))+x.toStr(depth+1)
+                        childStr += ('  '*(depth+1))+x.toStr(depth+1)
                     else:
-                        childStr += (u'\n'+u'  '*(depth+1))+x.toStr(depth+1)
+                        childStr += ('\n'+'  '*(depth+1))+x.toStr(depth+1)
                 else:
                     childStr += x.toStr(depth+1)                    
 
                 lastIsTag = True
         if lastIsTag:
-            endStr = (u'  '*depth)+self.sdel+self.name+self.rdel+u'\n'
+            endStr = ('  '*depth)+self.sdel+self.name+self.rdel+'\n'
         else:
-            endStr = self.sdel+self.name+self.rdel+u'\n'
+            endStr = self.sdel+self.name+self.rdel+'\n'
         return (attributeStr +self.rdel+ childStr + endStr).replace(u"\n\n", u"\n")
         
     def copy(self):
@@ -167,7 +166,7 @@ __tags = ['a', 'abbr', 'acronym', 'address', 'applet', 'area',
         'frame', 'frameset', 'head', 'h1', 'h2', 'h3', 'h4', 
         'h5' 'h6', 'hr', 'html', 'i', 'iframe', 'img', 'input',
         'ins', 'kbd', 'label', 'legend', 'li', 'link', 'map',
-        'menu', 'meta', 'noframes','noscript', 'object', 'ol',
+        'men', 'meta', 'noframes','noscript', 'object', 'ol',
         'optgroup', 'option', 'p', 'param', 'pre', 'q', 's',
         'samp', 'script', 'select', 'small', 'span', 'strike',
         'strong', 'style', 'sub', 'sup', 'table', 'tbody', 'td',
