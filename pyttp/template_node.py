@@ -191,12 +191,12 @@ class TagNode(Node):
             try:
                 remainder = res.decode("utf-8")
             except:
-                remainder = unicode(res)
+                remainder = str(res)
         if self.children or self.remainder:
             html.append(self._render_tag_end(one_line=False))
         else:
             html.append(self._render_tag_end(one_line=True))
-        if remainder:
+        if remainder and remainder != "!":
             html.append(remainder)
         return u''.join(html)
 
