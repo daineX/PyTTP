@@ -190,3 +190,7 @@ class Template(object):
         root_node, root_indent = tag_stack[0]
         yield root_node.render(context, base_indent)
 
+
+def render_string(markup, context=None):
+    t = Template()
+    return ''.join(t.render(markup, context=context))
