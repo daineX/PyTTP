@@ -79,7 +79,7 @@ class TagNode(Node):
     TAG_NAME_RE = r"(?P<name>\w+)"
 
     TAG_ID_RE = r"#(?P<id>\w[\w\-]*)"
-    ATTR_RE = r"(?P<key>\w+):\s*'(?P<value>.+?)',?", r"(?P<key>\w+):\s*\"(?P<value>.+?)\",?"
+    ATTR_RE = r"(?P<key>[\w\-\_]+):\s*'(?P<value>.+?)',?", r"(?P<key>[\w\-\_]+):\s*\"(?P<value>.+?)\",?"
 
     def __init__(self, line, parent=None):
         super(TagNode, self).__init__(line, parent)
