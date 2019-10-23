@@ -47,6 +47,8 @@ OPS = {
 
     # Use @= to mark variables as local.
     ast.MatMult: "var",
+    # Use **= to use "new" operator.
+    ast.Pow: "new"
 }
 
 class JSVisitor(NodeVisitor):
@@ -165,6 +167,8 @@ class JSVisitor(NodeVisitor):
         op = self.visit(node.op)
         if op == "var":
             self.result.append(f"var {node.target.id} = {value};")
+        elif op == "new":
+            self.result.append(f"{node.target.id} = new {value};")
         else:
             self.result.append(f"{node.target.id} {op}= {value};")
 
@@ -349,6 +353,29 @@ def environment():
 
     def str(obj):
         return obj + ""
+
+    def select(selectors):
+        return document.querySelector(selectors)
+
+    def selectAll(selectors):
+        return document.querySelectorAll(selectors)
+
+    Element.prototype.selectAll = Element.prototype.querySelectorAll
+
+    def on(eventName, callback, *args):
+
+        def encapsulated(event):
+            return callback(event.target, event)
+
+        this.addEventListener(eventName, encapsulated, *args)
+        return this
+
+    Element.prototype.on = on
+
+    def trigger(eventName):
+        event **= Event(eventName)
+        this.dispatchEvent(event)
+    Element.prototype.trigger = trigger
 
 
 def treeFromObj(obj):
