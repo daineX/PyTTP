@@ -17,21 +17,23 @@ pyml = """\
 %html
   %body
     %div
-      %span(class: "output")!
-      %br
-      %input(class: "input" type: "number")
+      -for idx in groups
+        %span.output(data-idx: "= idx")!
+        %input.input(type: "number" data-idx: "= idx" value: "0")
+        %br
     %script(src: "/jssrc")!
     %script
       js_setup()
 """
-markup = render_string(pyml)
+markup = render_string(pyml, context=dict(groups=range(10)))
 
 
 def js_setup():
 
     def inputChange(elem):
-        select(".output").textContent = elem.value
-    select(".input").on('change', inputChange).trigger('change')
+        idx = elem.dataset.idx
+        select(".output[data-idx='" + idx + "']").textContent = elem.value
+    selectAll(".input").forEach(lambda el: el.on('change', inputChange).trigger('change'))
 
 js = toJS(js_setup)
 
