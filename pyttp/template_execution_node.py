@@ -133,15 +133,8 @@ class PreNode(ExecutionNode):
 
     PREFIX = 'pre'
 
-    def _fetch_child_lines(self, node, indent):
-        lines = []
-        for child_node in node.children:
-            lines.append(' '*4*indent + child_node.line)
-            lines += self._fetch_child_lines(child_node, indent + 1)            
-        return lines
-
     def render(self, context, indent):
-        return u'\n' + u'\n'.join(self._fetch_child_lines(self, indent))
+        return u'\n' + u'\n'.join(n.line for n in self.children)
 
 
 @registered

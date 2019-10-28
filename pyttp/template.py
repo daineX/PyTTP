@@ -1,7 +1,7 @@
 import os
 
 from .template_node import Node, CommentNode, EvalNode, TagNode, TextNode
-from .template_execution_node import ExecutionNodeRegistry
+from .template_execution_node import ExecutionNodeRegistry, PreNode
 
 from .settings import get_settings
 settings = get_settings()
@@ -151,12 +151,15 @@ class Template(object):
             if not stripped_line:
                 continue
 
-
             for closed_node, closed_indent in reversed(tag_stack):
                 if closed_indent >= indent:
                     tag_stack.pop()
 
             closed_node, closed_indent = tag_stack[-1]
+
+            if type(closed_node) is PreNode:
+                closed_node.add_child(TextNode(line))
+                continue
 
             for prefix, node_type in PREFIX_TO_NODE.items():
                 if stripped_line.startswith(prefix):
