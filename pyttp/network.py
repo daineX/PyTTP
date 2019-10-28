@@ -206,7 +206,7 @@ class ThreadedSocketListener(object):
         try:        
             listenSocket = socket.socket()
             listenSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            print("Binding ...")
+            print("Binding to port {} ...".format(self.port))
             while True:
                 try:
                     listenSocket.bind(('', self.port))

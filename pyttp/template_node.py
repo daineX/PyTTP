@@ -74,17 +74,17 @@ class EvalNode(TextNode):
 
 class TagNode(Node):
 
-    TAG_RE = r"%(?P<tag_name>\w[\w#\.\-]*)(\((?P<attrs>.+)\))?(?P<value_insert>=)?(?P<remainder>.+)?"
+    TAG_RE = r"(?P<shortcut>[%\.#])(?P<tag_name>\w[\w#\.\-]*)(\((?P<attrs>.+)\))?(?P<value_insert>=)?(?P<remainder>.+)?"
     TAG_CLASS_RE = r"\.(?P<class>\w[\w\-]*)"
     TAG_NAME_RE = r"(?P<name>\w+)"
 
     TAG_ID_RE = r"#(?P<id>\w[\w\-]*)"
-    ATTR_RE = r"(?P<key>[\w\-\_]+):\s*'(?P<value>.+?)',?", r"(?P<key>[\w\-\_]+):\s*\"(?P<value>.+?)\",?"
+    ATTR_RE = r"(?P<key>[\w\-\_]+):\s*'(?P<value>.*?)',?", r"(?P<key>[\w\-\_]+):\s*\"(?P<value>.*?)\",?"
 
     def __init__(self, line, parent=None):
         super(TagNode, self).__init__(line, parent)
 
-        (self.tag_name, self.attrs,
+        (self.shortcut, self.tag_name, self.attrs,
          self.is_value_insert, self.remainder) = self._parse_tag()
 
         self.attrs = self._parse_attrs(self.attrs)
@@ -98,7 +98,10 @@ class TagNode(Node):
 
     def _parse_tag(self):
         m = re.match(TagNode.TAG_RE, self.line)
+        shortcut = m.group('shortcut')
         tag_name = m.group('tag_name')
+        if shortcut in "#.":
+            tag_name = "div" + shortcut + tag_name
         attrs = m.group('attrs')
         is_value_insert = bool(m.group('value_insert'))
         remainder = m.group('remainder')
@@ -106,7 +109,7 @@ class TagNode(Node):
             remainder = remainder.lstrip()
         if attrs:
             attrs = attrs.strip()
-        return tag_name, attrs, is_value_insert, remainder
+        return shortcut, tag_name, attrs, is_value_insert, remainder
 
 
     def _parse_attrs(self, attrs):
@@ -150,7 +153,7 @@ class TagNode(Node):
                          len(original_string) - len (tag_string),
                          )
                       )
-                raise Template.ParseError(msg)
+                raise Node.ParseError(msg)
         if classes:
             attrs.append((u'class', u' '.join(classes)))
         if tag_id:

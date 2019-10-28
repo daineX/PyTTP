@@ -38,7 +38,8 @@ class Template(object):
 
 
     def is_tag(self, line):
-        return line.strip().startswith('%')
+        line = line.strip()
+        return line and line[0] in "%#."
 
 
     def is_exec_node(self, line):
@@ -51,13 +52,6 @@ class Template(object):
 
     def is_value_insert(self, line):
         return line.startswith('=')
-
-
-    def handle_div(self, line):
-        if line.startswith(".") or line.startswith("#"):
-            return "%div" + line
-        else:
-            return line
 
 
     def indentation_depth(self, line):
@@ -163,7 +157,6 @@ class Template(object):
                 continue
 
             stripped_line, indent = self.indentation_depth(line)
-            stripped_line = self.handle_div(stripped_line)
 
             if not stripped_line:
                 continue
