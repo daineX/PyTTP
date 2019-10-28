@@ -39,8 +39,14 @@ class ExecutionNodeRegistry(object):
         cls.REGISTRY.lookup[node_cls.PREFIX] = node_cls
 
     @classmethod
-    def get_node_cls(cls, prefix):
+    def get_node_cls(cls, line):
+        prefix = line.split(' ')[0][1:]
         return cls.REGISTRY.lookup[prefix]
+
+    @classmethod
+    def get_node(cls, line, closed_node):
+        node_cls = cls.get_node_cls(line)
+        return node_cls(line, closed_node)
 
 
 def registered(node):

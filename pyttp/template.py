@@ -1,10 +1,19 @@
 import os
 
-from .template_node import Node, EvalNode, TagNode, TextNode
+from .template_node import Node, CommentNode, EvalNode, TagNode, TextNode
 from .template_execution_node import ExecutionNodeRegistry
 
 from .settings import get_settings
 settings = get_settings()
+
+PREFIX_TO_NODE = {
+    '//': CommentNode,
+    '%': TagNode,
+    '#': TagNode,
+    '.': TagNode,
+    '-': ExecutionNodeRegistry.get_node,
+    '=': EvalNode,
+}
 
 class Template(object):
 
@@ -31,23 +40,6 @@ class Template(object):
         pass
 
     TAB_INDENT = 4
-
-
-    def is_comment(self, line):
-        return line.strip().startswith('//')
-
-
-    def is_tag(self, line):
-        line = line.strip()
-        return line and line[0] in "%#."
-
-
-    def is_exec_node(self, line):
-        return line.strip().startswith('-')
-
-
-    def is_eval_node(self, line):
-        return line.strip().startswith('=')
 
 
     def is_value_insert(self, line):
@@ -153,13 +145,12 @@ class Template(object):
         for line in pre_processed:
             if not line:
                 continue
-            if self.is_comment(line):
-                continue
 
             stripped_line, indent = self.indentation_depth(line)
 
             if not stripped_line:
                 continue
+
 
             for closed_node, closed_indent in reversed(tag_stack):
                 if closed_indent >= indent:
@@ -167,15 +158,12 @@ class Template(object):
 
             closed_node, closed_indent = tag_stack[-1]
 
-            if self.is_tag(stripped_line):
-                node = TagNode(stripped_line, closed_node)
-            elif self.is_exec_node(stripped_line):
-                prefix = stripped_line.split(' ')[0][1:]
-                node = ExecutionNodeRegistry.get_node_cls(prefix)(stripped_line, closed_node)
-            elif self.is_eval_node(stripped_line):
-                node = EvalNode(stripped_line, closed_node)
+            for prefix, node_type in PREFIX_TO_NODE.items():
+                if stripped_line.startswith(prefix):
+                    break
             else:
-                node = TextNode(stripped_line, closed_node)
+                node_type = TextNode
+            node = node_type(stripped_line, closed_node)
 
             if node.is_tag or node.is_exec_node:
                 tag_stack.append((node, indent))

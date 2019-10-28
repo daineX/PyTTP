@@ -54,6 +54,12 @@ class Node(object):
         return "Node(%s)" % (self.line,)
 
 
+class CommentNode(Node):
+
+    def render(self, context, indent):
+        return ""
+
+
 class TextNode(Node):
 
     def render(self, context, indent):
