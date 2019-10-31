@@ -285,22 +285,23 @@ class JSVisitor(NodeVisitor):
         gen = node.generators[0]
         if len(node.generators) > 1 or len(gen.ifs) > 1:
             raise NotImplementedError("Multi-dimensional list comprehensions are not supported.")
-        r = []
-        r.append("(function (it) {var r = [];")
-        target = self.visit(gen.target)
-        r.append(f"for ({target} of it) {{")
+
+        def __listComp__(it):
+            r @= []
+            for __target__ in it:
+                if __pred__:
+                    r.push(__elem__)
+            return r
+
+        r = toJS(__listComp__, include_env=False, debug=self.debug)
+        r = (r.replace("__listComp__", "")
+              .replace("__target__", self.visit(gen.target))
+              .replace("__elem__", self.visit(node.elt)))
         if gen.ifs:
-            ifs = gen.ifs[0]
-            pred = self.visit(ifs)
-            r.append(f"if ({pred}) {{")
-        elem = self.visit(node.elt)
-        r.append(f"r.push({elem});")
-        if gen.ifs:
-            r.append("}")
-        r.append("} return r;")
-        iter_ = self.visit(gen.iter)
-        r.append(f"}})({iter_})")
-        return ''.join(r)
+            r = r.replace("__pred__", self.visit(gen.ifs[0]))
+        else:
+            r = r.replace("__pred__", "true")
+        return "({})({})".format(r, self.visit(gen.iter))
 
     def visit_For(self, node):
         if node.orelse:
@@ -381,9 +382,10 @@ def environment():
 def treeFromObj(obj):
     return parse(dedent(getsource(obj)))
 
-def toJS(*objs, debug=False):
+def toJS(*objs, include_env=True, debug=False):
     body = []
-    body.extend(treeFromObj(environment).body[0].body)
+    if include_env:
+        body.extend(treeFromObj(environment).body[0].body)
     for obj in objs:
         body.extend(treeFromObj(obj).body)
     tree = Module(body=body)
