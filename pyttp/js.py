@@ -430,6 +430,18 @@ def environment():
         for key, value in Object.entries(obj):
             yield key, value
 
+    def range(start, stop, step):
+        if step == None:
+            step = 1
+        if step != 0:
+            if stop == None:
+                stop = start
+                start = 0
+            n = start
+            while (step > 0 and n < stop) or (step < 0 and n > stop):
+                yield n
+                n += step
+
 def treeFromObj(obj):
     return parse(dedent(getsource(obj)))
 
@@ -515,5 +527,7 @@ if __name__ == "__main__":
         {a: b - 1 for a, b in objectItems({"t": 3, "h": 0})}
 
         (a + 2 for a in (1, 2, 3, 4) if a % 2 == 0)
+
+        [x for x in range(10)]
 
     print(toJS(toCompile, debug=True))
