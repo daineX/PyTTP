@@ -9,6 +9,7 @@ from ast import (
     NodeTransformer,
     NodeVisitor,
     parse,
+    Slice,
     Yield,
     YieldFrom,
 )
@@ -26,7 +27,9 @@ class RootSentinel:
 
 OPS = {
     ast.Add: "+",
+    ast.UAdd: "+",
     ast.Sub: "-",
+    ast.USub: "-",
     ast.Mult: "*",
     ast.Div: "/",
     ast.FloorDiv: "/",
@@ -269,9 +272,16 @@ class JSVisitor(NodeVisitor):
         return self.visit(node.value)
 
     def visit_Subscript(self, node):
-        v = self.visit(node.value)
-        s = self.visit(node.slice)
-        return f"{v}[{s}]"
+        value = self.visit(node.value)
+        if type(node.slice) is Slice:
+            if node.slice.step:
+                raise NotImplementedError("Slice steps are not supported.")
+            lower = self.visit(node.slice.lower)
+            upper = self.visit(node.slice.upper)
+            return f"({value}).slice({lower}, {upper})"
+        else:
+            slice = self.visit(node.slice)
+            return f"{value}[{slice}]"
 
     def visit_Load(self, node):
         return ""
@@ -491,8 +501,8 @@ if __name__ == "__main__":
         anonymous(window.jQuery)
         a, b = 2, 3
 
-        c = [x + 2 for x in [1, 2, 3] if x % 2 == 1]
-        d = [x * 2 for x in c]
+        c = [x + 2 for x in [1, 2, 3, 4, 5, 6] if x % 2 == 1]
+        d = [x * 2 for x in c][0:-1]
 
         def p(*args):
             console.log(*args)
