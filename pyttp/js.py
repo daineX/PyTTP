@@ -148,11 +148,11 @@ class JSVisitor(NodeVisitor):
             args.append("..." + node.vararg.arg)
         return ', '.join(args)
 
-    def find_node(self, node, node_types):
+    def find_node(self, node, node_types, exclude=()):
         t = type(node)
         if t in node_types:
             return True
-        if hasattr(node, "body"):
+        if hasattr(node, "body") and t not in exclude:
             return any(self.find_node(child, node_types) for child in node.body)
         if t is Expr:
             return self.find_node(node.value, node_types)
@@ -161,7 +161,8 @@ class JSVisitor(NodeVisitor):
     def is_generator_function(self, node):
         if type(node) is not FunctionDef:
             return False
-        return self.find_node(node, {Yield, YieldFrom})
+        return any(self.find_node(child, {Yield, YieldFrom}, {ClassDef, FunctionDef})
+                   for child in node.body)
 
     def visit_FunctionDef(self, node):
         if self.context is not ClassDef:
