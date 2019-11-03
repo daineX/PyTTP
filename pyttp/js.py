@@ -4,6 +4,9 @@ from ast import (
     FunctionDef,
     Module,
     Name,
+    If,
+    NameConstant,
+    NodeTransformer,
     NodeVisitor,
     parse,
     Yield,
@@ -51,8 +54,24 @@ OPS = {
     ast.Pow: "new"
 }
 
-class JSVisitor(NodeVisitor):
+def make_name_transformer(mapping):
 
+    class _NameTransformer(NodeTransformer):
+
+        def visit_Name(self, node):
+            for name, replacement in mapping.items():
+                if node.id == name:
+                    return replacement
+            else:
+                return node
+
+    return _NameTransformer().visit
+
+def make_constant(const):
+    return NameConstant(value=const)
+
+
+class JSVisitor(NodeVisitor):
 
     ROOT = RootSentinel()
 
@@ -293,14 +312,13 @@ class JSVisitor(NodeVisitor):
                     r.push(__elem__)
             return r
 
-        r = toJS(__listComp__, include_env=False, debug=self.debug)
-        r = (r.replace("__listComp__", "")
-              .replace("__target__", self.visit(gen.target))
-              .replace("__elem__", self.visit(node.elt)))
-        if gen.ifs:
-            r = r.replace("__pred__", self.visit(gen.ifs[0]))
-        else:
-            r = r.replace("__pred__", "true")
+        transform = make_name_transformer({
+            "__elem__": node.elt,
+            "__target__": gen.target,
+            "__pred__": gen.ifs[0] if gen.ifs else make_constant(True),
+        })
+
+        r = toJS(__listComp__, transform=transform, include_env=False, debug=self.debug)
         return "({})({})".format(r, self.visit(gen.iter))
 
     def visit_For(self, node):
@@ -378,17 +396,22 @@ def environment():
         this.dispatchEvent(event)
     Element.prototype.trigger = trigger
 
+    def objectItems(obj):
+        for key, value in Object.entries(obj):
+            yield key, value
 
 def treeFromObj(obj):
     return parse(dedent(getsource(obj)))
 
-def toJS(*objs, include_env=True, debug=False):
+def toJS(*objs, transform=None, include_env=True, debug=False):
     body = []
     if include_env:
         body.extend(treeFromObj(environment).body[0].body)
     for obj in objs:
         body.extend(treeFromObj(obj).body)
     tree = Module(body=body)
+    if transform:
+        tree = transform(tree)
     visitor = JSVisitor(debug=debug)
     visitor.visit(tree)
     return visitor.toJS()
@@ -448,7 +471,8 @@ if __name__ == "__main__":
         anonymous(window.jQuery)
         a, b = 2, 3
 
-        c = [x + 2 for x in [1, 2, 3] if x % 2 == 0]
+        c = [x + 2 for x in [1, 2, 3] if x % 2 == 1]
+        d = [x * 2 for x in c]
 
         def p(*args):
             console.log(*args)
