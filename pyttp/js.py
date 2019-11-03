@@ -321,6 +321,28 @@ class JSVisitor(NodeVisitor):
         r = toJS(__listComp__, transform=transform, include_env=False, debug=self.debug)
         return "({})({})".format(r, self.visit(gen.iter))
 
+    def visit_DictComp(self, node):
+        gen = node.generators[0]
+        if len(node.generators) > 1 or len(gen.ifs) > 1:
+            raise NotImplementedError("Multi-dimensional dict comprehensions are not supported.")
+
+        def __dictComp__(it):
+            r @= {}
+            for __target__ in it:
+                if __pred__:
+                    r[__key__] = __value__
+            return r
+
+        transform = make_name_transformer({
+            "__value__": node.value,
+            "__key__": node.key,
+            "__target__": gen.target,
+            "__pred__": gen.ifs[0] if gen.ifs else make_constant(True),
+        })
+
+        r = toJS(__dictComp__, transform=transform, include_env=False, debug=self.debug)
+        return "({})({})".format(r, self.visit(gen.iter))
+
     def visit_For(self, node):
         if node.orelse:
             raise NotImplementedError("for: else: is not supported.")
@@ -481,5 +503,7 @@ if __name__ == "__main__":
         (lambda x: x + 1)(2)
 
         foo = sep or ' '
+
+        {a: b - 1 for a, b in objectItems({"t": 3, "h": 0})}
 
     print(toJS(toCompile, debug=True))
