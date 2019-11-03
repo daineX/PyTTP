@@ -59,9 +59,9 @@ def make_name_transformer(mapping):
     class _NameTransformer(NodeTransformer):
 
         def visit_Name(self, node):
-            for name, replacement in mapping.items():
-                if node.id == name:
-                    return replacement
+            replacement = mapping.get(node.id)
+            if replacement is not None:
+                return replacement
             else:
                 return node
 
@@ -300,48 +300,46 @@ class JSVisitor(NodeVisitor):
 
     visit_Tuple = visit_List
 
-    def visit_ListComp(self, node):
+    def _visit_Comp(self, node, func, mapping):
         gen = node.generators[0]
         if len(node.generators) > 1 or len(gen.ifs) > 1:
-            raise NotImplementedError("Multi-dimensional list comprehensions are not supported.")
-
-        def __listComp__(it):
-            r @= []
-            for __target__ in it:
-                if __pred__:
-                    r.push(__elem__)
-            return r
-
-        transform = make_name_transformer({
-            "__elem__": node.elt,
+            raise NotImplementedError("Multi-dimensional comprehensions are not supported.")
+        transform_mapping = mapping.copy()
+        transform_mapping.update({
             "__target__": gen.target,
             "__pred__": gen.ifs[0] if gen.ifs else make_constant(True),
         })
-
-        r = toJS(__listComp__, transform=transform, include_env=False, debug=self.debug)
+        transform = make_name_transformer(transform_mapping)
+        r = toJS(func, transform=transform, include_env=False, debug=self.debug)
         return "({})({})".format(r, self.visit(gen.iter))
+
+    def __listComp__(it):
+        r @= []
+        for __target__ in it:
+            if __pred__:
+                r.push(__elem__)
+        return r
+
+    def __genExpr__(it):
+        for __target__ in it:
+            if __pred__:
+                yield __elem__
+
+    def __dictComp__(it):
+        r @= {}
+        for __target__ in it:
+            if __pred__:
+                r[__key__] = __value__
+        return r
+
+    def visit_ListComp(self, node):
+        return self._visit_Comp(node, self.__listComp__, {"__elem__": node.elt})
+
+    def visit_GeneratorExp(self, node):
+        return self._visit_Comp(node, self.__genExpr__, {"__elem__": node.elt})
 
     def visit_DictComp(self, node):
-        gen = node.generators[0]
-        if len(node.generators) > 1 or len(gen.ifs) > 1:
-            raise NotImplementedError("Multi-dimensional dict comprehensions are not supported.")
-
-        def __dictComp__(it):
-            r @= {}
-            for __target__ in it:
-                if __pred__:
-                    r[__key__] = __value__
-            return r
-
-        transform = make_name_transformer({
-            "__value__": node.value,
-            "__key__": node.key,
-            "__target__": gen.target,
-            "__pred__": gen.ifs[0] if gen.ifs else make_constant(True),
-        })
-
-        r = toJS(__dictComp__, transform=transform, include_env=False, debug=self.debug)
-        return "({})({})".format(r, self.visit(gen.iter))
+        return self._visit_Comp(node, self.__dictComp__, {"__value__": node.value, "__key__": node.key})
 
     def visit_For(self, node):
         if node.orelse:
@@ -505,5 +503,7 @@ if __name__ == "__main__":
         foo = sep or ' '
 
         {a: b - 1 for a, b in objectItems({"t": 3, "h": 0})}
+
+        (a + 2 for a in (1, 2, 3, 4) if a % 2 == 0)
 
     print(toJS(toCompile, debug=True))
