@@ -54,7 +54,7 @@ OPS = {
     # Use @= to mark variables as local.
     ast.MatMult: "var",
     # Use **= to use "new" operator.
-    ast.Pow: "new"
+    ast.Pow: "new" # TODO: replace with actual pow implementation
 }
 
 def make_name_transformer(mapping):
@@ -113,11 +113,14 @@ class JSVisitor(NodeVisitor):
             else:
                 self.result.append(f"{node.name} = {call}({node.name});")
 
-    def iterate(self, node):
+    def iterate_body(self, node, body):
         self.ctx_stack.append(type(node))
-        for child in node.body:
+        for child in body:
             self.visit(child)
         self.ctx_stack.pop()
+
+    def iterate(self, node):
+        self.iterate_body(node, node.body)
 
     def visit_Import(self, node):
         return ""
@@ -183,7 +186,18 @@ class JSVisitor(NodeVisitor):
             t = self.visit(target)
             self.result.append(f"{t} = {v};")
 
-    visit_AnnAssign = visit_Assign
+    def visit_AnnAssign(self, node):
+        t = self.visit(node.target)
+        v = self.visit(node.value)
+        annotations = {ann.strip() for ann in self.visit(node.annotation).split("|")}
+        if "var" in annotations:
+            self.result.append(f"var {t} ")
+        else:
+            self.result.append(t)
+        if "new" in annotations:
+            self.result.append(f"= new {v};")
+        else:
+            self.result.append(f"= {v};")
 
     def visit_AugAssign(self, node):
         value = self.visit(node.value)
@@ -325,7 +339,7 @@ class JSVisitor(NodeVisitor):
         return "({})({})".format(r, self.visit(gen.iter))
 
     def __listComp__(it):
-        r @= []
+        r: var = []
         for __target__ in it:
             if __pred__:
                 r.push(__elem__)
@@ -337,7 +351,7 @@ class JSVisitor(NodeVisitor):
                 yield __elem__
 
     def __dictComp__(it):
-        r @= {}
+        r: var = {}
         for __target__ in it:
             if __pred__:
                 r[__key__] = __value__
@@ -384,6 +398,29 @@ class JSVisitor(NodeVisitor):
         body = self.visit(node.body)
         return f"(({args}) => {{return {body}}})"
 
+    def visit_Raise(self, node):
+        exc = self.visit(node.exc)
+        self.result.append(f"throw {exc};")
+
+    def visit_Try(self, node):
+        self.result.append("try {")
+        self.iterate(node)
+        self.result.append("}")
+        if len(node.handlers) > 1:
+            raise NotImplementedError("Multiple exception handlers are not supported")
+        for handler in node.handlers:
+            self.visit(handler)
+        if node.finalbody:
+            self.result.append("finally {")
+            self.iterate_body(node, node.finalbody)
+            self.result.append("}")
+
+    def visit_ExceptHandler(self, node):
+        t = self.visit(node.type)
+        self.result.append(f"catch({t}) {{")
+        self.iterate(node)
+        self.result.append("}")
+
     def toJS(self):
         if self.debug:
             print(self.result)
@@ -423,7 +460,7 @@ def environment():
     Element.prototype.on = on
 
     def trigger(eventName):
-        event **= Event(eventName)
+        event: new | var = Event(eventName)
         this.dispatchEvent(event)
     Element.prototype.trigger = trigger
 
@@ -472,13 +509,13 @@ if __name__ == "__main__":
             def bar():
                 return this.a
 
-        myList @= [1, 2, 3]
+        myList: var = [1, 2, 3]
         for i in myList:
             jq(".foo").text(i)
             if i > 1:
                 break
 
-        idx @= 0
+        idx: var = 0
         while idx < 3:
             idx += 1
             continue
@@ -530,5 +567,15 @@ if __name__ == "__main__":
         (a + 2 for a in (1, 2, 3, 4) if a % 2 == 0)
 
         [x for x in range(10)]
+
+        a: var = Foo()
+        exc: new | var = Error("foo happened.")
+
+        try:
+            raise exc from Exception()
+        except e:
+            e.message
+        finally:
+            a + b
 
     print(toJS(toCompile, debug=True))
