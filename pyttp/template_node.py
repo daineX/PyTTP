@@ -73,10 +73,20 @@ class TextNode(Node):
 
 class EvalNode(TextNode):
 
-    def render(self, context, indent):
-        res = self.eval_code(context, self.line[1:], honor_autoescape=True)
-        return unicode(res)
+    honor_autoescape = True
+    prefix = 1
 
+    def render(self, context, indent):
+        res = self.eval_code(
+            context,
+            self.line[self.prefix:],
+            honor_autoescape=self.honor_autoescape)
+        return str(res)
+
+class UnescapedEvalNode(EvalNode):
+
+    honor_autoescape = False
+    prefix = 2
 
 class TagNode(Node):
 

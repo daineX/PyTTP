@@ -10,25 +10,6 @@ from pyttp.template import render_string
 from pyttp.wsgi import WSGIListener
 
 
-pyml = """\
--!!!
-%head
-  %meta(charset: "UTF-8")
-%html
-  %body
-    %div
-      -for idx in groups
-        %span.output(data-idx: "= idx")!
-        %input.number(type: "number" data-idx: "= idx" value: "0")
-        %br
-    %input#reset(type: "button" value: "Reset")
-    %script(src: "/jssrc")!
-    %script
-      js_setup()
-"""
-markup = render_string(pyml, context=dict(groups=range(10)))
-
-
 def js_setup():
 
     def inputChange(elem):
@@ -44,6 +25,27 @@ def js_setup():
         selectAll(".number").forEach(reset)
 
 js = toJS(js_setup)
+
+
+pyml = """\
+-!!!
+%head
+  %meta(charset: "UTF-8")
+%html
+  %body
+    %div
+      -for idx in groups
+        %span.output(data-idx: "= idx")!
+        %input.number(type: "number" data-idx: "= idx" value: "0")
+        %br
+    %input#reset(type: "button" value: "Reset")
+    %script
+      == js
+    %script
+      js_setup()
+"""
+markup = render_string(pyml, context=dict(groups=range(10), js=js))
+
 
 
 class JSController(Controller):

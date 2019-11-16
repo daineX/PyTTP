@@ -1,9 +1,16 @@
 import os
 
-from .template_node import Node, CommentNode, EvalNode, TagNode, TextNode
-from .template_execution_node import ExecutionNodeRegistry, PreNode
-
 from .settings import get_settings
+from .template_execution_node import ExecutionNodeRegistry, PreNode
+from .template_node import (
+    CommentNode,
+    EvalNode,
+    Node,
+    TagNode,
+    TextNode,
+    UnescapedEvalNode,
+)
+
 settings = get_settings()
 
 PREFIX_TO_NODE = {
@@ -12,6 +19,7 @@ PREFIX_TO_NODE = {
     '#': TagNode,
     '.': TagNode,
     '-': ExecutionNodeRegistry.get_node,
+    '==': UnescapedEvalNode,
     '=': EvalNode,
 }
 
