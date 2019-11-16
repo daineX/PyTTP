@@ -53,8 +53,6 @@ OPS = {
 
     # Use @= to mark variables as local.
     ast.MatMult: "var",
-    # Use **= to use "new" operator.
-    ast.Pow: "new" # TODO: replace with actual pow implementation
 }
 
 def make_name_transformer(mapping):
@@ -190,31 +188,42 @@ class JSVisitor(NodeVisitor):
         annotations = {ann.strip() for ann in self.visit(node.annotation).split("|")}
         for annotation in annotations:
             if annotation in specs:
-                self.result.append(f"{annotation} {t} ")
+                self.result.append(f"{annotation} {t}")
                 break
         else:
             self.result.append(t)
+        self.result.append(" = ")
         if "new" in annotations:
-            self.result.append(f"= new {v};")
+            self.result.append(f"new {v};")
         else:
-            self.result.append(f"= {v};")
+            self.result.append(f"{v};")
+
+    def visit_Pow(self, left, right):
+        return f"Math.pow({left}, {right})"
 
     def visit_AugAssign(self, node):
-        value = self.visit(node.value)
-        op = self.visit(node.op)
         target = self.visit(node.target)
-        if op == "var":
-            self.result.append(f"var {target} = {value};")
-        elif op == "new":
-            self.result.append(f"{target} = new {value};")
+        value = self.visit(node.value)
+        if type(node.op) is ast.Pow:
+            op = self.visit_Pow(target, value)
+            self.result.append(f"{target} = {op};")
         else:
-            self.result.append(f"{target} {op}= {value};")
+            op = self.visit(node.op)
+            if op == "var":
+                self.result.append(f"var {target} = {value};")
+            elif op == "new":
+                self.result.append(f"{target} = new {value};")
+            else:
+                self.result.append(f"{target} {op}= {value};")
 
     def visit_BinOp(self, node):
-        right = self.visit(node.right)
-        op = self.visit(node.op)
         left = self.visit(node.left)
-        return f"{left} {op} {right}"
+        right = self.visit(node.right)
+        if type(node.op) is ast.Pow:
+            return self.visit_Pow(left, right)
+        else:
+            op = self.visit(node.op)
+            return f"{left} {op} {right}"
 
     def visit_BoolOp(self, node):
         left, right = node.values
@@ -625,6 +634,7 @@ if __name__ == "__main__":
         def foobar():
             pass
 
-        foo = f"bar = {a + b}"
+        a **= b
+        foo = f"bar = {a ** b}"
 
     print(toJS(toCompile, debug=True))
