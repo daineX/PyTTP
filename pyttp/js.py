@@ -405,21 +405,30 @@ class JSVisitor(NodeVisitor):
     def visit_Try(self, node):
         self.result.append("try {")
         self.iterate(node)
-        self.result.append("}")
-        if len(node.handlers) > 1:
-            raise NotImplementedError("Multiple exception handlers are not supported")
+        self.result.append("} catch (_exc) {")
         for handler in node.handlers:
             self.visit(handler)
+        self.result.append("}")
         if node.finalbody:
             self.result.append("finally {")
             self.iterate_body(node, node.finalbody)
             self.result.append("}")
 
     def visit_ExceptHandler(self, node):
-        t = self.visit(node.type)
-        self.result.append(f"catch({t}) {{")
-        self.iterate(node)
-        self.result.append("}")
+        if node.type is None:
+            self.iterate(node)
+        else:
+            if type(node.type) is ast.Tuple:
+                types = node.type.elts
+            else:
+                types = [node.type]
+            for typ_ in types:
+                t = self.visit(typ_)
+                self.result.append(f"if (_exc isinstanceof {t}) {{")
+                if node.name:
+                    self.result.append(f"var {node.name} = _exc;")
+                self.iterate(node)
+            self.result.append("}")
 
     def toJS(self):
         if self.debug:
@@ -573,9 +582,15 @@ if __name__ == "__main__":
 
         try:
             raise exc from Exception()
-        except e:
+        except Error as e:
             e.message
         finally:
             a + b
+
+        try:
+            foo
+        except:
+            pass
+
 
     print(toJS(toCompile, debug=True))
