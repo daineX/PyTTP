@@ -202,12 +202,13 @@ class JSVisitor(NodeVisitor):
     def visit_AugAssign(self, node):
         value = self.visit(node.value)
         op = self.visit(node.op)
+        target = self.visit(node.target)
         if op == "var":
-            self.result.append(f"var {node.target.id} = {value};")
+            self.result.append(f"var {target} = {value};")
         elif op == "new":
-            self.result.append(f"{node.target.id} = new {value};")
+            self.result.append(f"{target} = new {value};")
         else:
-            self.result.append(f"{node.target.id} {op}= {value};")
+            self.result.append(f"{target} {op}= {value};")
 
     def visit_BinOp(self, node):
         right = self.visit(node.right)
