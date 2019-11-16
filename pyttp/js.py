@@ -103,7 +103,6 @@ class JSVisitor(NodeVisitor):
         return super().visit(node)
 
     def decorate(self, node):
-        self.result.append(";")
         for decorator in node.decorator_list:
             dec = self.visit(decorator)
             self.result.append(f"{node.name} = {dec}({node.name});")
