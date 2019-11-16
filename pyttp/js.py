@@ -258,8 +258,23 @@ class JSVisitor(NodeVisitor):
         items = ','.join(items)
         return ''.join(["{", items, "}"])
 
-    def visit_Str(self, node):
-        return f'"{node.s}"'
+    def visit_Str(self, node, delim='"'):
+        return f'{delim}{node.s}{delim}'
+
+    def visit_JoinedStr(self, node):
+        result = []
+        result.append("`")
+        for value in node.values:
+            if type(value) is ast.Str:
+                result.append(self.visit_Str(value, delim=""))
+            else:
+                result.append(self.visit(value))
+        result.append("`")
+        return ''.join(result)
+
+    def visit_FormattedValue(self, node):
+        v = self.visit(node.value)
+        return f"${{{v}}}"
 
     def visit_Num(self, node):
         return str(node.n)
@@ -609,5 +624,7 @@ if __name__ == "__main__":
         @button.on
         def foobar():
             pass
+
+        foo = f"bar = {a + b}"
 
     print(toJS(toCompile, debug=True))

@@ -32,8 +32,7 @@ markup = render_string(pyml, context=dict(groups=range(10)))
 def js_setup():
 
     def inputChange(elem):
-        idx = elem.dataset.idx
-        select(".output[data-idx='" + idx + "']").textContent = elem.value
+        select(f".output[data-idx='{elem.dataset.idx}']").textContent = elem.value
     selectAll(".number").forEach(lambda el: el.on('change', inputChange).trigger('change'))
 
     reset: var = select("#reset")
