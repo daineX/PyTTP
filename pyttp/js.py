@@ -105,13 +105,10 @@ class JSVisitor(NodeVisitor):
         return super().visit(node)
 
     def decorate(self, node):
+        self.result.append(";")
         for decorator in node.decorator_list:
-            call = self.visit(decorator)
-            if call.endswith(")"):
-                call = call[:-1]
-                self.result.append(f"{node.name} = {call}, {node.name});")
-            else:
-                self.result.append(f"{node.name} = {call}({node.name});")
+            dec = self.visit(decorator)
+            self.result.append(f"{node.name} = {dec}({node.name});")
 
     def iterate_body(self, node, body):
         self.ctx_stack.append(type(node))
@@ -187,11 +184,14 @@ class JSVisitor(NodeVisitor):
             self.result.append(f"{t} = {v};")
 
     def visit_AnnAssign(self, node):
+        specs = {"var", "let", "const"}
         t = self.visit(node.target)
         v = self.visit(node.value)
         annotations = {ann.strip() for ann in self.visit(node.annotation).split("|")}
-        if "var" in annotations:
-            self.result.append(f"var {t} ")
+        for annotation in annotations:
+            if annotation in specs:
+                self.result.append(f"{annotation} {t} ")
+                break
         else:
             self.result.append(t)
         if "new" in annotations:
@@ -413,6 +413,7 @@ class JSVisitor(NodeVisitor):
             self.result.append("finally {")
             self.iterate_body(node, node.finalbody)
             self.result.append("}")
+        self.result.append(";")
 
     def visit_ExceptHandler(self, node):
         if node.type is None:
@@ -458,13 +459,19 @@ def environment():
 
     Element.prototype.selectAll = Element.prototype.querySelectorAll
 
-    def on(eventName, callback, *args):
+    def on(eventName, callback):
 
-        def encapsulated(event):
-            return callback(event.target, event)
+        self = this
+        def decorator(callback):
+            def encapsulated(event):
+                return callback(event.target, event)
+            self.addEventListener(eventName, encapsulated)
+            return self
 
-        this.addEventListener(eventName, encapsulated, *args)
-        return this
+        if callback != None:
+            return decorator(callback)
+        else:
+            return decorator
 
     Element.prototype.on = on
 
@@ -592,5 +599,14 @@ if __name__ == "__main__":
         except:
             pass
 
+        button: var = select(".button")
+
+        @button.on("click")
+        def on_button_click(elem):
+            select(".para").textContent += "foobar"
+
+        @button.on
+        def foobar():
+            pass
 
     print(toJS(toCompile, debug=True))

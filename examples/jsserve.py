@@ -19,8 +19,9 @@ pyml = """\
     %div
       -for idx in groups
         %span.output(data-idx: "= idx")!
-        %input.input(type: "number" data-idx: "= idx" value: "0")
+        %input.number(type: "number" data-idx: "= idx" value: "0")
         %br
+    %input#reset(type: "button" value: "Reset")
     %script(src: "/jssrc")!
     %script
       js_setup()
@@ -33,7 +34,15 @@ def js_setup():
     def inputChange(elem):
         idx = elem.dataset.idx
         select(".output[data-idx='" + idx + "']").textContent = elem.value
-    selectAll(".input").forEach(lambda el: el.on('change', inputChange).trigger('change'))
+    selectAll(".number").forEach(lambda el: el.on('change', inputChange).trigger('change'))
+
+    reset: var = select("#reset")
+    @reset.on("click")
+    def resetAll():
+        def reset(el):
+            el.value = 0
+            inputChange(el)
+        selectAll(".number").forEach(reset)
 
 js = toJS(js_setup)
 
