@@ -156,7 +156,7 @@ class JSVisitor(NodeVisitor):
         return False
 
     def is_generator_function(self, node):
-        if type(node) is not FunctionDef:
+        if not isinstance(node, FunctionDef):
             return False
         return any(self.find_node(child, {Yield, YieldFrom}, {ClassDef, FunctionDef})
                    for child in node.body)
@@ -203,7 +203,7 @@ class JSVisitor(NodeVisitor):
     def visit_AugAssign(self, node):
         target = self.visit(node.target)
         value = self.visit(node.value)
-        if type(node.op) is ast.Pow:
+        if isinstance(node.op, ast.Pow):
             op = self.visit_Pow(target, value)
             self.result.append(f"{target} = {op};")
         else:
@@ -218,7 +218,7 @@ class JSVisitor(NodeVisitor):
     def visit_BinOp(self, node):
         left = self.visit(node.left)
         right = self.visit(node.right)
-        if type(node.op) is ast.Pow:
+        if isinstance(node.op, ast.Pow):
             return self.visit_Pow(left, right)
         else:
             op = self.visit(node.op)
@@ -273,7 +273,7 @@ class JSVisitor(NodeVisitor):
         result = []
         result.append("`")
         for value in node.values:
-            if type(value) is ast.Str:
+            if isinstance(value, ast.Str):
                 result.append(self.visit_Str(value, delim=""))
             else:
                 result.append(self.visit(value))
@@ -312,7 +312,7 @@ class JSVisitor(NodeVisitor):
 
     def visit_Subscript(self, node):
         value = self.visit(node.value)
-        if type(node.slice) is Slice:
+        if isinstance(node.slice, Slice):
             if node.slice.step:
                 raise NotImplementedError("Slice steps are not supported.")
             lower = self.visit(node.slice.lower)
@@ -443,7 +443,7 @@ class JSVisitor(NodeVisitor):
         if node.type is None:
             self.iterate(node)
         else:
-            if type(node.type) is ast.Tuple:
+            if isinstance(node.type, ast.Tuple):
                 types = node.type.elts
             else:
                 types = [node.type]
