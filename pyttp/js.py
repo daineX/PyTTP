@@ -435,7 +435,7 @@ class JSVisitor(ast.NodeVisitor):
                 types = [node.type]
             for typ_ in types:
                 t = self.visit(typ_)
-                self.result.append(f"if (_exc isinstanceof {t}) {{")
+                self.result.append(f"if (_exc instanceof {t}) {{")
                 if node.name:
                     self.result.append(f"var {node.name} = _exc;")
                 self.iterate(node)
