@@ -1,22 +1,6 @@
-from ast import (
-    ClassDef,
-    Expr,
-    FunctionDef,
-    Module,
-    Name,
-    If,
-    NameConstant,
-    NodeTransformer,
-    NodeVisitor,
-    parse,
-    Slice,
-    Yield,
-    YieldFrom,
-)
 import ast
 from inspect import getsource
 from textwrap import dedent
-
 
 __all__ = ['toJS']
 
@@ -57,7 +41,7 @@ OPS = {
 
 def make_name_transformer(mapping):
 
-    class _NameTransformer(NodeTransformer):
+    class _NameTransformer(ast.NodeTransformer):
 
         def visit_Name(self, node):
             replacement = mapping.get(node.id)
@@ -69,10 +53,10 @@ def make_name_transformer(mapping):
     return _NameTransformer().visit
 
 def make_constant(const):
-    return NameConstant(value=const)
+    return ast.NameConstant(value=const)
 
 
-class JSVisitor(NodeVisitor):
+class JSVisitor(ast.NodeVisitor):
 
     ROOT = RootSentinel()
 
@@ -151,18 +135,20 @@ class JSVisitor(NodeVisitor):
             return True
         if hasattr(node, "body") and t not in exclude:
             return any(self.find_node(child, node_types) for child in node.body)
-        if t is Expr:
+        if t is ast.Expr:
             return self.find_node(node.value, node_types)
         return False
 
     def is_generator_function(self, node):
-        if not isinstance(node, FunctionDef):
+        if not isinstance(node, ast.FunctionDef):
             return False
-        return any(self.find_node(child, {Yield, YieldFrom}, {ClassDef, FunctionDef})
+        return any(self.find_node(child,
+                                  {ast.Yield, ast.YieldFrom},
+                                  {ast.ClassDef, ast.FunctionDef})
                    for child in node.body)
 
     def visit_FunctionDef(self, node):
-        if self.context is not ClassDef:
+        if self.context is not ast.ClassDef:
             if self.is_generator_function(node):
                 self.result.append("function* ")
             else:
@@ -312,7 +298,7 @@ class JSVisitor(NodeVisitor):
 
     def visit_Subscript(self, node):
         value = self.visit(node.value)
-        if isinstance(node.slice, Slice):
+        if isinstance(node.slice, ast.Slice):
             if node.slice.step:
                 raise NotImplementedError("Slice steps are not supported.")
             lower = self.visit(node.slice.lower)
@@ -521,7 +507,7 @@ def environment():
                 n += step
 
 def treeFromObj(obj):
-    return parse(dedent(getsource(obj)))
+    return ast.parse(dedent(getsource(obj)))
 
 def toJS(*objs, transform=None, include_env=True, debug=False):
     body = []
@@ -529,7 +515,7 @@ def toJS(*objs, transform=None, include_env=True, debug=False):
         body.extend(treeFromObj(environment).body[0].body)
     for obj in objs:
         body.extend(treeFromObj(obj).body)
-    tree = Module(body=body)
+    tree = ast.Module(body=body)
     if transform:
         tree = transform(tree)
     visitor = JSVisitor(debug=debug)
