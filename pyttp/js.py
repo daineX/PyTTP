@@ -335,46 +335,46 @@ class JSVisitor(ast.NodeVisitor):
 
     visit_Tuple = visit_List
 
-    def _visit_Comp(self, node, func, mapping):
+    def _visit_Comp(self, node, impl, mapping):
         gen = node.generators[0]
         if len(node.generators) > 1 or len(gen.ifs) > 1:
             raise NotImplementedError("Multi-dimensional comprehensions are not supported.")
         transform_mapping = mapping.copy()
         transform_mapping.update({
-            "__target__": gen.target,
-            "__pred__": gen.ifs[0] if gen.ifs else make_constant(True),
+            "target": gen.target,
+            "pred": gen.ifs[0] if gen.ifs else make_constant(True),
         })
         transform = make_name_transformer(transform_mapping)
-        r = toJS(func, transform=transform, include_env=False, debug=self.debug)
+        r = toJS(impl, transform=transform, include_env=False, debug=self.debug)
         return "({})({})".format(r, self.visit(gen.iter))
 
-    def __listComp__(it):
-        r: var = []
-        for __target__ in it:
-            if __pred__:
-                r.push(__elem__)
-        return r
+    def list_comp_impl(iterable):
+        result: var = []
+        for target in iterable:
+            if pred:
+                result.push(elem)
+        return result
 
-    def __genExpr__(it):
-        for __target__ in it:
-            if __pred__:
-                yield __elem__
+    def list_comp_impl(iterable):
+        for target in iterable:
+            if pred:
+                yield elem
 
-    def __dictComp__(it):
-        r: var = {}
-        for __target__ in it:
-            if __pred__:
-                r[__key__] = __value__
-        return r
+    def dict_comp_impl(iterable):
+        result: var = {}
+        for target in iterable:
+            if pred:
+                result[key] = value
+        return result
 
     def visit_ListComp(self, node):
-        return self._visit_Comp(node, self.__listComp__, {"__elem__": node.elt})
+        return self._visit_Comp(node, self.list_comp_impl, {"elem": node.elt})
 
     def visit_GeneratorExp(self, node):
-        return self._visit_Comp(node, self.__genExpr__, {"__elem__": node.elt})
+        return self._visit_Comp(node, self.list_comp_impl, {"elem": node.elt})
 
     def visit_DictComp(self, node):
-        return self._visit_Comp(node, self.__dictComp__, {"__value__": node.value, "__key__": node.key})
+        return self._visit_Comp(node, self.dict_comp_impl, {"value": node.value, "key": node.key})
 
     def visit_For(self, node):
         if node.orelse:
