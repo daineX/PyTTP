@@ -34,9 +34,6 @@ OPS = {
     ast.Invert: "~",
     ast.Pass: ";",
     ast.Or: "||",
-
-    # Use @= to mark variables as local.
-    ast.MatMult: "var",
 }
 
 def make_name_transformer(mapping):
@@ -194,12 +191,7 @@ class JSVisitor(ast.NodeVisitor):
             self.result.append(f"{target} = {op};")
         else:
             op = self.visit(node.op)
-            if op == "var":
-                self.result.append(f"var {target} = {value};")
-            elif op == "new":
-                self.result.append(f"{target} = new {value};")
-            else:
-                self.result.append(f"{target} {op}= {value};")
+            self.result.append(f"{target} {op}= {value};")
 
     def visit_BinOp(self, node):
         left = self.visit(node.left)
