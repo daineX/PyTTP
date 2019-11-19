@@ -17,11 +17,10 @@ def js_setup():
     for el in selectAll(".number"):
         el.on('change', inputChange).trigger('change')
 
-    def resetAll():
-        for el in selectAll(".number"):
-            el.value = 0
-            inputChange(el)
-    select("#reset").on("click", resetAll)
+    select("#reset").on("click", lambda el: (
+        [el.val(0) for el in selectAll(".number")],
+        inputChange(el)
+    ))
 
 js = toJS(js_setup)
 

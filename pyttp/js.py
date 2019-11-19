@@ -477,6 +477,14 @@ def environment():
 
     Element.prototype.on = on
 
+    def Element_set(key, value):
+        this[key] = value
+    Element.prototype.set = Element_set
+
+    def val(value):
+        this.value = value
+    Element.prototype.val = val
+
     def trigger(eventName):
         event: new | var = Event(eventName)
         this.dispatchEvent(event)
