@@ -347,7 +347,7 @@ class JSVisitor(ast.NodeVisitor):
                 result.push(elem)
         return result
 
-    def list_comp_impl(iterable):
+    def gen_expr_impl(iterable):
         for target in iterable:
             if pred:
                 yield elem
@@ -363,7 +363,7 @@ class JSVisitor(ast.NodeVisitor):
         return self._visit_Comp(node, self.list_comp_impl, {"elem": node.elt})
 
     def visit_GeneratorExp(self, node):
-        return self._visit_Comp(node, self.list_comp_impl, {"elem": node.elt})
+        return self._visit_Comp(node, self.gen_expr_impl, {"elem": node.elt})
 
     def visit_DictComp(self, node):
         return self._visit_Comp(node, self.dict_comp_impl, {"value": node.value, "key": node.key})
