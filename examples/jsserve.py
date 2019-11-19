@@ -14,15 +14,14 @@ def js_setup():
 
     def inputChange(elem):
         select(f".output[data-idx='{elem.dataset.idx}']").textContent = elem.value
-    selectAll(".number").forEach(lambda el: el.on('change', inputChange).trigger('change'))
+    for el in selectAll(".number"):
+        el.on('change', inputChange).trigger('change')
 
-    reset: var = select("#reset")
-    @reset.on("click")
     def resetAll():
-        def reset(el):
+        for el in selectAll(".number"):
             el.value = 0
             inputChange(el)
-        selectAll(".number").forEach(reset)
+    select("#reset").on("click", resetAll)
 
 js = toJS(js_setup)
 
@@ -41,7 +40,6 @@ pyml = """\
     %input#reset(type: "button" value: "Reset")
     %script
       == js
-    %script
       js_setup()
 """
 markup = render_string(pyml, context=dict(groups=range(10), js=js))
