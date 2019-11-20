@@ -14,13 +14,8 @@ def js_setup():
 
     def inputChange(elem):
         select(f".output[data-idx='{elem.dataset.idx}']").textContent = elem.value
-    for el in selectAll(".number"):
-        el.on('change', inputChange).trigger('change')
-
-    select("#reset").on("click", lambda el: (
-        [el.val(0) for el in selectAll(".number")],
-        inputChange(el)
-    ))
+    selectAll(".number").on("change", inputChange).trigger("change")
+    select("#reset").on("click", lambda el: selectAll(".number").val(0).apply(inputChange))
 
 js = toJS(js_setup)
 

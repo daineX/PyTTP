@@ -72,6 +72,9 @@ class JSVisitor(ast.NodeVisitor):
     def context(self):
         return self.ctx_stack[-1]
 
+    def emit(self, value):
+        self.result.append(value)
+
     def generic_visit(self, node):
         node_type = type(node)
         if node_type in OPS:
@@ -86,13 +89,15 @@ class JSVisitor(ast.NodeVisitor):
     def decorate(self, node):
         for decorator in node.decorator_list:
             dec = self.visit(decorator)
-            self.result.append(f"{node.name} = {dec}({node.name});")
+            self.emit(f"{node.name} = {dec}({node.name});")
 
     def iterate_body(self, node, body):
+        self.emit("\n")
         self.ctx_stack.append(type(node))
         for child in body:
             self.visit(child)
         self.ctx_stack.pop()
+        self.emit("\n")
 
     def iterate(self, node):
         self.iterate_body(node, node.body)
@@ -101,15 +106,15 @@ class JSVisitor(ast.NodeVisitor):
         return ""
 
     def visit_ClassDef(self, node):
-        self.result.append(f"class {node.name}")
+        self.emit(f"class {node.name}")
         if node.bases:
             if len(node.bases) > 1:
                 raise NotImplementedError("Classes cannot have more than one base.")
             base = self.visit(node.bases[0])
-            self.result.append(f" extends {base}")
-        self.result.append(" {")
+            self.emit(f" extends {base}")
+        self.emit(" {")
         self.iterate(node)
-        self.result.append("}")
+        self.emit("}\n")
         self.decorate(node)
 
     def visit_Module(self, node):
@@ -146,22 +151,23 @@ class JSVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         if self.context is not ast.ClassDef:
-            if self.is_generator_function(node):
-                self.result.append("function* ")
-            else:
-                self.result.append("function ")
-        self.result.append(f"{node.name} (")
-        self.result.append(self.visit(node.args))
-        self.result.append(") {")
+            self.emit("function")
+        if self.is_generator_function(node):
+            self.emit("*")
+        if self.context is not ast.ClassDef:
+            self.emit(" ")
+        self.emit(f"{node.name} (")
+        self.emit(self.visit(node.args))
+        self.emit(") {")
         self.iterate(node)
-        self.result.append("}")
+        self.emit("}\n")
         self.decorate(node)
 
     def visit_Assign(self, node):
         v = self.visit(node.value)
         for target in node.targets:
             t = self.visit(target)
-            self.result.append(f"{t} = {v};")
+            self.emit(f"{t} = {v};")
 
     def visit_AnnAssign(self, node):
         specs = {"var", "let", "const"}
@@ -170,15 +176,15 @@ class JSVisitor(ast.NodeVisitor):
         annotations = {ann.strip() for ann in self.visit(node.annotation).split("|")}
         for annotation in annotations:
             if annotation in specs:
-                self.result.append(f"{annotation} {t}")
+                self.emit(f"{annotation} {t}")
                 break
         else:
-            self.result.append(t)
-        self.result.append(" = ")
+            self.emit(t)
+        self.emit(" = ")
         if "new" in annotations:
-            self.result.append(f"new {v};")
+            self.emit(f"new {v};")
         else:
-            self.result.append(f"{v};")
+            self.emit(f"{v};")
 
     def visit_Pow(self, left, right):
         return f"Math.pow({left}, {right})"
@@ -188,10 +194,10 @@ class JSVisitor(ast.NodeVisitor):
         value = self.visit(node.value)
         if isinstance(node.op, ast.Pow):
             op = self.visit_Pow(target, value)
-            self.result.append(f"{target} = {op};")
+            self.emit(f"{target} = {op};")
         else:
             op = self.visit(node.op)
-            self.result.append(f"{target} {op}= {value};")
+            self.emit(f"{target} {op}= {value};")
 
     def visit_BinOp(self, node):
         left = self.visit(node.left)
@@ -223,17 +229,17 @@ class JSVisitor(ast.NodeVisitor):
 
     def visit_If(self, node):
         t = self.visit(node.test)
-        self.result.append(f"if ({t}) {{")
+        self.emit(f"if ({t}) {{")
         self.iterate(node)
-        self.result.append("}")
+        self.emit("}")
         if node.orelse:
-            self.result.append(" else ")
+            self.emit(" else ")
             if len(node.orelse) > 1:
-                self.result.append("{")
+                self.emit("{")
             for orelse in node.orelse:
                 self.visit(orelse)
             if len(node.orelse) > 1:
-                self.result.append("}")
+                self.emit("}")
 
     def visit_Dict(self, node):
         items = []
@@ -282,8 +288,8 @@ class JSVisitor(ast.NodeVisitor):
         return ''.join(result)
 
     def visit_Expr(self, node):
-        self.result.append(self.visit(node.value))
-        self.result.append(";")
+        self.emit(self.visit(node.value))
+        self.emit(";\n")
 
     def visit_Index(self, node):
         return self.visit(node.value)
@@ -305,10 +311,10 @@ class JSVisitor(ast.NodeVisitor):
 
     def visit_Return(self, node):
         if node.value is None:
-            self.result.append("return;")
+            self.emit("return;")
         else:
             v = self.visit(node.value)
-            self.result.append(f"return {v};")
+            self.emit(f"return {v};")
 
     def visit_Yield(self, node):
         if node.value is None:
@@ -373,23 +379,23 @@ class JSVisitor(ast.NodeVisitor):
             raise NotImplementedError("for: else: is not supported.")
         target = self.visit(node.target)
         it = self.visit(node.iter)
-        self.result.append(f"for ({target} of {it}) {{")
+        self.emit(f"for (var {target} of {it}) {{")
         self.iterate(node)
-        self.result.append("}")
+        self.emit("}")
 
     def visit_While(self, node):
         if node.orelse:
             raise NotImplementedError("while: else: is not supported.")
         test = self.visit(node.test)
-        self.result.append(f"while ({test}) {{")
+        self.emit(f"while ({test}) {{")
         self.iterate(node)
-        self.result.append("}")
+        self.emit("}")
 
     def visit_Break(self, node):
-        self.result.append("break;")
+        self.emit("break;\n")
 
     def visit_Continue(self, node):
-        self.result.append("continue;")
+        self.emit("continue;\n")
 
     def visit_Starred(self, node):
         v = self.visit(node.value)
@@ -402,20 +408,20 @@ class JSVisitor(ast.NodeVisitor):
 
     def visit_Raise(self, node):
         exc = self.visit(node.exc)
-        self.result.append(f"throw {exc};")
+        self.emit(f"throw {exc};")
 
     def visit_Try(self, node):
-        self.result.append("try {")
+        self.emit("try {")
         self.iterate(node)
-        self.result.append("} catch (_exc) {")
+        self.emit("} catch (_exc) {")
         for handler in node.handlers:
             self.visit(handler)
-        self.result.append("}")
+        self.emit("}")
         if node.finalbody:
-            self.result.append("finally {")
+            self.emit("finally {")
             self.iterate_body(node, node.finalbody)
-            self.result.append("}")
-        self.result.append(";")
+            self.emit("}")
+        self.emit(";\n")
 
     def visit_ExceptHandler(self, node):
         if node.type is None:
@@ -427,11 +433,11 @@ class JSVisitor(ast.NodeVisitor):
                 types = [node.type]
             for typ_ in types:
                 t = self.visit(typ_)
-                self.result.append(f"if (_exc instanceof {t}) {{")
+                self.emit(f"if (_exc instanceof {t}) {{")
                 if node.name:
-                    self.result.append(f"var {node.name} = _exc;")
+                    self.emit(f"var {node.name} = _exc;")
                 self.iterate(node)
-            self.result.append("}")
+            self.emit("}")
 
     def toJS(self):
         if self.debug:
@@ -459,10 +465,7 @@ def environment():
     def selectAll(selectors):
         return document.querySelectorAll(selectors)
 
-    Element.prototype.selectAll = Element.prototype.querySelectorAll
-
-    def on(eventName, callback):
-
+    def Element_on(eventName, callback):
         self = this
         def decorator(callback):
             def encapsulated(event):
@@ -474,21 +477,56 @@ def environment():
             return decorator(callback)
         else:
             return decorator
+    Element.prototype.on = Element_on
 
-    Element.prototype.on = on
+    def NodeListMethod(methodName):
+        def decorator(func):
+            def NodeList_method(*args):
+                for elem in this:
+                    func.bind(elem)(*args)
+                return this
+            NodeList.prototype[methodName] = NodeList_method
+            return func
+        return decorator
 
+    @NodeListMethod("set")
     def Element_set(key, value):
         this[key] = value
+        return this
     Element.prototype.set = Element_set
 
-    def val(value):
+    @NodeListMethod("val")
+    def Element_val(value):
         this.value = value
-    Element.prototype.val = val
+        return this
+    Element.prototype.val = Element_val
 
-    def trigger(eventName):
+    @NodeListMethod("trigger")
+    def Element_trigger(eventName):
         event: new | var = Event(eventName)
         this.dispatchEvent(event)
-    Element.prototype.trigger = trigger
+        return this
+    Element.prototype.trigger = Element_trigger
+
+    def NodeList_on(eventName, callback):
+        self = this
+        def decorator(callback):
+            def encapsulated(event):
+                return callback(event.target, event)
+            for elem in self:
+                elem.addEventListener(eventName, encapsulated)
+            return self
+        if callback != None:
+            return decorator(callback)
+        else:
+            return decorator
+    NodeList.prototype.on = NodeList_on
+
+    def NodeList_apply(func):
+        for elem in this:
+            func(elem)
+        return this
+    NodeList.prototype.apply = NodeList_apply
 
     def objectItems(obj):
         for key, value in Object.entries(obj):
