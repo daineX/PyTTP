@@ -31,6 +31,14 @@ class Paginator(object):
         return page
 
 
+def get_paginator(request, objects, items_per_page=10, page_parameter=None):
+    try:
+        page = Paginator.get_page(request, page_parameter)
+    except Paginator.InvalidPageError:
+        page = 1
+    return Paginator(objects, page, items_per_page)
+
+
 def paginate(objects_key, items_per_page=10, page_parameter=None):
     def decorate(meth):
 
@@ -38,11 +46,7 @@ def paginate(objects_key, items_per_page=10, page_parameter=None):
             response = meth(inst, request, *args, **kwargs)
             objects = response.context[objects_key]
 
-            try:
-                page = Paginator.get_page(request, page_parameter)
-            except Paginator.InvalidPageError:
-                page = 1
-            paginator = Paginator(objects, page, items_per_page)
+            paginator = get_paginator(request, objects, items_per_page, page_parameter)
 
             response.context[objects_key] = paginator
             return response

@@ -72,7 +72,7 @@ class FileServer(object):
     """
 
 
-    def __init__(self, document_root, directory_listing=False, max_cache_age=3600):
+    def __init__(self, document_root, directory_listing=True, max_cache_age=3600):
         """
         directory_listing: Allow directory listing if True.
         """
@@ -83,8 +83,8 @@ class FileServer(object):
 
     def __call__(self, environ, start_response):
         import urllib
-        path = urllib.unquote(environ["PATH_INFO"][1:])
-        filename = os.path.normpath(os.path.join(self.document_root, path.decode("utf-8")))
+        path = urllib.parse.unquote(environ["PATH_INFO"][1:])
+        filename = os.path.normpath(os.path.join(self.document_root, path))
 
         filename_valid = True
         if os.path.commonprefix([self.document_root, filename]) != self.document_root:
@@ -92,7 +92,6 @@ class FileServer(object):
         if not os.path.exists(filename):
             filename_valid = False
         if not filename_valid:
-            print "Invalid File: %s" % filename
             status = "404 Not found"
             headers = [('Content-type', 'text/plain')]
             start_response(status, headers)
@@ -116,7 +115,7 @@ class FileServer(object):
                 yield '<tr><td><a href="/">..</a></td><td></td></tr>'
             else:
                 yield '<tr><td><a href="%s">..</a></td><td></td></tr>' % parentDir[len(self.document_root):]
-            for entry in sorted(entries, cmp=lambda x,y: cmp(x.lower(), y.lower())):
+            for entry in sorted(entries, key=lambda x: x.lower()):
                 yield '<tr><td><a href="%s">%s</a></td><td>%sKB</td></tr>' % (entry[len(self.document_root):], os.path.basename(entry), os.path.getsize(entry) / 1024)
             yield "</body></html>"
 
@@ -125,7 +124,7 @@ class FileServer(object):
             mime, enc = mimetypes.guess_type(filename)
 
             try:
-                with open(filename) as filehandle:
+                with open(filename,"rb") as filehandle:
                     status = "200 OK"
                     headers = [('Content-Type', mime),
                                ('Cache-Control', 'public, max-age=%s' % self.max_cache_age)]
@@ -135,8 +134,7 @@ class FileServer(object):
                         yield data
                         if len(data) < 65536:
                             break
-            except Exception, e:
-                print e
+            except Exception as e:
                 status = "401 Access denied"
                 headers = [('Content-type', 'text/plain')]
                 start_response(status, headers)

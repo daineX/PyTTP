@@ -196,7 +196,10 @@ class WSGIHandler(DefaultHandler):
         """
         chunkLength = len(chunk)
         chunkSize = hex(chunkLength)[2:]
-        return "{}\r\n{}\r\n".format(chunkSize, chunk).encode()
+        if isinstance(chunk, str):
+            return "{}\r\n{}\r\n".format(chunkSize, chunk).encode()
+        else:
+            return bytes(chunkSize, encoding="ascii") + b"\r\n" + chunk + b"\r\n"
 
 
     def __call__(self, conn, addr):

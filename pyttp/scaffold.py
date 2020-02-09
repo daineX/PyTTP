@@ -12,6 +12,7 @@ def make_controller_listener(controller,
                              static_serve_url='/static/.+',
                              static_serve_split=1,
                              static_serve_dir=None,
+                             **kwargs
                              ):
     if static_serve_dir is None:
         static_serve_dir = os.path.join(settings.BASE_DIR, "static")
@@ -20,4 +21,4 @@ def make_controller_listener(controller,
     root_app = Router([(static_serve_url, fileserve_app, static_serve_split),
                        ('/.*', controller_app)])
 
-    return WSGIListener(root_app, port)
+    return WSGIListener(root_app, port, **kwargs)
