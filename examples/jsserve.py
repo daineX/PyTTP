@@ -12,10 +12,16 @@ from pyttp.wsgi import WSGIListener
 
 def js_setup():
 
+    numbers: var = selectAll(".number")
+
+    @numbers.on("change")
     def inputChange(elem):
         select(f".output[data-idx='{elem.dataset.idx}']").textContent = elem.value
-    selectAll(".number").on("change", inputChange).trigger("change")
-    select("#reset").on("click", lambda el: selectAll(".number").val(0).apply(inputChange))
+    numbers.trigger("change")
+
+    @select("#reset").on("click")
+    def reset(elem):
+        selectAll(".number").val(0).apply(inputChange)
 
 js = toJS(js_setup)
 
