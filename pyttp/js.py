@@ -1,5 +1,6 @@
 import ast
 from inspect import getsource
+import json
 from textwrap import dedent
 
 __all__ = ['toJS']
@@ -547,7 +548,7 @@ def environment():
 def treeFromObj(obj):
     return ast.parse(dedent(getsource(obj)))
 
-def toJS(*objs, transform=None, include_env=True, debug=False):
+def toJS(*objs, context=None, transform=None, include_env=True, debug=False):
     body = []
     if include_env:
         body.extend(treeFromObj(environment).body[0].body)
@@ -558,7 +559,13 @@ def toJS(*objs, transform=None, include_env=True, debug=False):
         tree = transform(tree)
     visitor = JSVisitor(debug=debug)
     visitor.visit(tree)
-    return visitor.toJS()
+    src = visitor.toJS()
+    if context:
+        ctx_lines = []
+        for variable, value in context.items():
+            ctx_lines.append("{} = {};".format(variable, json.dumps(value)));
+        src = '\n'.join(ctx_lines + [src])
+    return src
 
 
 if __name__ == "__main__":
