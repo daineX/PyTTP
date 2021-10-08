@@ -466,13 +466,6 @@ def environment():
     def selectAll(selectors):
         return document.querySelectorAll(selectors)
 
-    def prototype(proto, name=''):
-        def decorator(func):
-            proto.prototype[name or func.name] = func
-            return func
-        return decorator
-
-    @prototype(Element, "on")
     def Element_on(eventName, callback):
         self = this
         def decorator(callback):
@@ -485,6 +478,7 @@ def environment():
             return decorator(callback)
         else:
             return decorator
+    Element.prototype.on = Element_on
 
     def NodeListMethod(methodName):
         def decorator(func):
@@ -497,25 +491,24 @@ def environment():
         return decorator
 
     @NodeListMethod("set")
-    @prototype(Element, "set")
     def Element_set(key, value):
         this[key] = value
         return this
+    Element.prototype.set = Element_set
 
     @NodeListMethod("val")
-    @prototype(Element, "val")
     def Element_val(value):
         this.value = value
         return this
+    Element.prototype.val = Element_val
 
     @NodeListMethod("trigger")
-    @prototype(Element, "trigger")
     def Element_trigger(eventName):
         event: new | var = Event(eventName)
         this.dispatchEvent(event)
         return this
+    Element.prototype.trigger = Element_trigger
 
-    @prototype(NodeList, "on")
     def NodeList_on(eventName, callback):
         self = this
         def decorator(callback):
@@ -528,12 +521,13 @@ def environment():
             return decorator(callback)
         else:
             return decorator
+    NodeList.prototype.on = NodeList_on
 
-    @prototype(NodeList, "apply")
     def NodeList_apply(func):
         for elem in this:
             func(elem)
         return this
+    NodeList.prototype.apply = NodeList_apply
 
     def objectItems(obj):
         for key, value in Object.entries(obj):
