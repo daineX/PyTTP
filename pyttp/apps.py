@@ -122,6 +122,9 @@ class FileServer(object):
 
         else:
             mime, enc = mimetypes.guess_type(filename)
+            if mime is None:
+                _, ext = os.path.splitext(filename)
+                mime = "application/{}".format(ext)
 
             try:
                 with open(filename,"rb") as filehandle:
