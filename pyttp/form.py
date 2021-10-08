@@ -1,4 +1,5 @@
 
+from itertools import chain
 from copy import deepcopy
 import string
 
@@ -10,8 +11,9 @@ class Field(object):
 
     default_validators = None
 
-    def __init__(self, name=None, value=None, validators=None):
+    def __init__(self, name=None, value=None, validators=None, required=True):
         self.name = name
+        self.required = required
         if value is None:
             value = ''
         self.raw_value = value
@@ -19,18 +21,22 @@ class Field(object):
         if validators is None:
             validators = []
         if self.default_validators is not None:
-            validators += default_validators
+            validators += self.default_validators
         self.validators = validators
         self.field = None
         self.errors = []
 
+    def bool(self, value):
+        return bool(value)
 
     def is_valid(self):
         value = self.raw_value
+        if not self.bool(value) and not self.required:
+            return True
         for validator in self.validators:
             try:
                 value = validator(value)
-            except ValidationException, e:
+            except ValidationException as e:
                 self.errors.append(e.msg)
                 return False
         self._value = value
@@ -39,9 +45,7 @@ class Field(object):
 
     @property
     def value(self):
-        if self._value:
-            return self._value
-        elif self.is_valid():
+        if self._value is not None:
             return self._value
         else:
             return self.raw_value
@@ -53,10 +57,7 @@ class Field(object):
 
     @property
     def id(self):
-        if self.form:
-            return '_'.join((self.form.name, self.name))
-        else:
-            return self.name
+        return self.name
 
 
 class TextField(Field):
@@ -82,6 +83,9 @@ class FileField(Field):
 
     def render(self):
         return '<input name="%s" id="%s" type="file" />' % (self.name, self.id)
+
+    def bool(self, value):
+        return getattr(value, 'filename', False)
 
 
 class PasswordField(Field):
@@ -122,14 +126,7 @@ class Form(object):
     def name(self):
         if self._name:
             return self._name
-        class_name = self.__class__.__name__
-        name = [class_name[0].lower()]
-        for c in class_name[1:]:
-            if c in string.uppercase:
-                name.append("_%s" % c.lower())
-            else:
-                name.append(c)
-        self._name = ''.join(name)
+        self._name = self.__class__.__name__.lower()
         return self._name
 
 
@@ -141,11 +138,9 @@ class Form(object):
 
 
     def is_valid(self):
-        return reduce(lambda x, y: x * y,
-                      [field.is_valid() for field in self.fields.values()])
-
+        all_valid = [field.is_valid() for field in self.fields.values()]
+        return all(all_valid)
 
     @property
     def errors(self):
-        return sum([field.errors for field in self.fields.values()], [])
-
+        return {name: field.errors for name, field in self.fields.items()}
