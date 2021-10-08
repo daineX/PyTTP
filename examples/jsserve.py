@@ -21,7 +21,7 @@ def js_setup():
 
     @select("#reset").on("click")
     def reset(elem):
-        selectAll(".number").val(0).apply(inputChange)
+        selectAll(".number").val(0).trigger("change")
 
 js = toJS(js_setup)
 
