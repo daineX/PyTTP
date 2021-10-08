@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-class OrderedListDict:
+class OrderedListDictProxy:
 
     def __init__(self):
         self.data = OrderedDict()
@@ -37,7 +37,7 @@ class Rule:
         normalized_rules=None
     ):
         if normalized_rules is None:
-            normalized_rules = OrderedListDict()
+            normalized_rules = OrderedListDictProxy()
         if extra_declarations is not None:
             declarations = extra_declarations.copy()
         else:
@@ -50,18 +50,21 @@ class Rule:
                 f"{decl_joiner}{decl_joiner}{property_name}:{decl_joiner}{value};{line_joiner}"
             )
         decl = ''.join(formatted_declarations)
+        sub_rules = []
         for sub_selector in self.selectors:
             sub_selector = f"{selector_prefix}{self.PREFIX_SPACING}{sub_selector}".strip()
             if sub_selector:
                 normalized_rules[decl].append(sub_selector)
             for sub_rule in self.sub_rules:
-                sub_normalized_rules = sub_rule.collect(
-                    selector_prefix=sub_selector,
-                    extra_declarations=declarations.copy(),
-                    decl_joiner=decl_joiner,
-                    line_joiner=line_joiner,
-                    normalized_rules=normalized_rules,
-                )
+                sub_rules.append((sub_rule, sub_selector, declarations))
+        for sub_rule, sub_selector, declarations in sub_rules:
+            sub_normalized_rules = sub_rule.collect(
+                selector_prefix=sub_selector,
+                extra_declarations=declarations,
+                decl_joiner=decl_joiner,
+                line_joiner=line_joiner,
+                normalized_rules=normalized_rules,
+            )
         return normalized_rules
 
     def format_head(self, selectors, selector_prefix="", decl_joiner=" ", line_joiner="\n"):
@@ -131,9 +134,6 @@ class Ruleset(Rule):
         else:
             rules.append(ruleset_or_rule)
         return type(self)(*rules)
-
-    def __str__(self):
-        return self.format()
 
 
 r = Rule
