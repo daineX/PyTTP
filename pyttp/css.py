@@ -1,19 +1,87 @@
+from collections import OrderedDict
+
+class OrderedListDict:
+
+    def __init__(self):
+        self.data = OrderedDict()
+
+    def __getitem__(self, key):
+        if key not in self.data:
+            lst = []
+            self.data[key] = lst
+            return lst
+        else:
+            return self.data[key]
+
+    def __getattr__(self, key):
+        return getattr(self.data, key)
+
+
 class Rule:
 
     PREFIX_SPACING = " "
 
-    def __init__(self, selector, *sub_rules_args, sub_rules=None, **declarations):
-        self.selector = selector.strip()
+    def __init__(self, selectors, *sub_rules_args, sub_rules=None, **declarations):
+        self.selectors = [selector.strip() for selector in selectors.split(",")]
         self.sub_rules = list(sub_rules_args)
         if sub_rules is not None:
             self.sub_rules.extend(sub_rules)
         self.declarations = declarations
 
-    def format_head(self, selector_prefix="", decl_joiner=" ", line_joiner="\n"):
-        if selector_prefix:
-            return f"{selector_prefix}{self.PREFIX_SPACING}{self.selector}{decl_joiner}{{{line_joiner}"
+    def collect(
+        self,
+        selector_prefix="",
+        extra_declarations=None,
+        decl_joiner=" ",
+        line_joiner="\n",
+        normalized_rules=None
+    ):
+        if normalized_rules is None:
+            normalized_rules = OrderedListDict()
+        if extra_declarations is not None:
+            declarations = extra_declarations.copy()
         else:
-            return f"{self.selector}{decl_joiner}{{{line_joiner}"
+            declarations = {}
+        declarations.update(self.declarations)
+        formatted_declarations = []
+        for property_name, value in declarations.items():
+            property_name = property_name.replace("_", "-")
+            formatted_declarations.append(
+                f"{decl_joiner}{decl_joiner}{property_name}:{decl_joiner}{value};{line_joiner}"
+            )
+        decl = ''.join(formatted_declarations)
+        for sub_selector in self.selectors:
+            sub_selector = f"{selector_prefix}{self.PREFIX_SPACING}{sub_selector}".strip()
+            if sub_selector:
+                normalized_rules[decl].append(sub_selector)
+            for sub_rule in self.sub_rules:
+                sub_normalized_rules = sub_rule.collect(
+                    selector_prefix=sub_selector,
+                    extra_declarations=declarations.copy(),
+                    decl_joiner=decl_joiner,
+                    line_joiner=line_joiner,
+                    normalized_rules=normalized_rules,
+                )
+        return normalized_rules
+
+    def format_head(self, selectors, selector_prefix="", decl_joiner=" ", line_joiner="\n"):
+        return "{selectors}{decl_joiner}{{{line_joiner}".format(
+            selectors=(',' + line_joiner).join(selectors),
+            decl_joiner=decl_joiner,
+            line_joiner=line_joiner,
+        )
+
+    def format_block(self, selectors, declarations, selector_prefix="", decl_joiner=" ", line_joiner="\n"):
+        if selectors:
+            head = self.format_head(
+                selectors,
+                selector_prefix=selector_prefix,
+                decl_joiner=decl_joiner,
+                line_joiner=line_joiner)
+            tail = f"}}{line_joiner}"
+        else:
+            head = tail = ""
+        return "{}{}{}".format(head, declarations, tail)
 
     def format(self, selector_prefix="", extra_declarations=None, pretty=False):
         if pretty:
@@ -22,38 +90,24 @@ class Rule:
         else:
             line_joiner = ""
             decl_joiner = ""
-        if extra_declarations is not None:
-            declarations = extra_declarations.copy()
-        else:
-            declarations = {}
-        declarations.update(self.declarations)
-
-        if self.selector:
-            head = self.format_head(
+        normalized_rules = self.collect(
+            selector_prefix=selector_prefix,
+            extra_declarations=extra_declarations,
+            decl_joiner=decl_joiner,
+            line_joiner=line_joiner,
+        )
+        return line_joiner.join(
+            self.format_block(
+                selectors,
+                declarations,
                 selector_prefix=selector_prefix,
                 decl_joiner=decl_joiner,
-                line_joiner=line_joiner)
-            tail = f"}}{line_joiner}"
-        else:
-            head = tail = ""
+                line_joiner=line_joiner
+            ) for declarations, selectors in normalized_rules.items()
+        )
 
-        formatted_declarations = []
-        for property_name, value in declarations.items():
-            property_name = property_name.replace("_", "-")
-            formatted_declarations.append(
-                f"{decl_joiner}{decl_joiner}{property_name}:{decl_joiner}{value};{line_joiner}"
-            )
-
-        output = []
-        output.append("{}{}{}".format(head, ''.join(formatted_declarations), tail))
-
-        for sub_selector in self.selector.split(","):
-            for sub_rule in self.sub_rules:
-                output.append(sub_rule.format(
-                    selector_prefix=f"{selector_prefix} {sub_selector}".strip(),
-                    extra_declarations=self.declarations,
-                    pretty=pretty))
-        return line_joiner.join(output)
+    def copy(self, selector):
+        return type(self)(selector, sub_rules=self.sub_rules, **self.declarations)
 
     def __str__(self):
         return self.format()
@@ -62,6 +116,7 @@ class Rule:
 class AugmentingRule(Rule):
 
     PREFIX_SPACING = ""
+
 
 class Ruleset(Rule):
 
@@ -80,26 +135,24 @@ class Ruleset(Rule):
     def __str__(self):
         return self.format()
 
+
 r = Rule
 ar = AugmentingRule
 rs = Ruleset
 
+
 if __name__ == "__main__":
-
     ruleset = rs(
-        r(".foobar, table > tr",
-            border_color="#f00baa",
-            border_width="2px",
-            _moz_transform="translateY(10%)",
+        r("#body",
+            r(".foo, bar",
+                border_width="2px",
+                sub_rules=[
+                    r("span", font_weight=300),
+                    ar(".wide", border_width="var(--wide-border)"),
+                ]
+            ),
             __wide_border="3px",
-            sub_rules=[
-                r("td", r("span", font_weight=400), border_color="#baaf00"),
-                ar(".wide", border_width="var(--wide-border)"),
-            ]
-        ),
-        r("h1", font_weight=900),
-    )
-
+    ))
     ruleset += r("h2", font_style="italic")
 
     print(ruleset)
