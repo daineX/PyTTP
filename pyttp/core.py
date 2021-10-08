@@ -84,7 +84,7 @@ class RequestParser(object):
         except:
             raise RequestParserException("Malformed Request!", requestString)
         try:
-            lines = requestString.split(b'\r\n')
+            lines = requestHeaderString.split(b'\r\n')
         except AttributeError:
             raise RequestParserException("Expected string!", requestString)
         try:
