@@ -76,13 +76,19 @@ class ControllerResponse:
         self.headers.append(("Set-Cookie", header_value))
 
     def render(self):
-        return self.payload
+        payload = self.payload or b''
+        if isinstance(payload, bytes):
+            return payload
+        elif isinstance(payload, str):
+            return payload.encode()
+        else:
+            raise Exception("Expected payload to be str or bytes, not {}".format(type(payload)))
 
 
 class EmptyResponse(ControllerResponse):
 
     def __init__(self, status="200 OK", headers=None):
-        super(EmptyResponse, self).__init__('', status, headers)
+        super(EmptyResponse, self).__init__(b'', status, headers)
 
 
 class RedirectionResponse(EmptyResponse):
@@ -127,9 +133,10 @@ class TemplateResponse(ControllerResponse):
         self.context['request'] = request
 
     def render(self):
-        return ''.join(Template.load_and_render(self.template,
-                                                self.context,
-                                                search_path=self.search_path))
+        self.payload = ''.join(Template.load_and_render(self.template,
+                                                        self.context,
+                                                        search_path=self.search_path))
+        return super().render()
 
 
 class ControllerRequest(object):
@@ -272,9 +279,7 @@ class ControllerWSGIApp(object):
                 raise
 
         start_response(response.status, response.headers)
-
         yield response.render()
-
 
     @staticmethod
     def build_request(lookup, environ):
