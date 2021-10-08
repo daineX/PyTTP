@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 from pyttp import network
+from threading import current_thread
 import os
 import socket
 import ssl
@@ -33,7 +34,7 @@ class DefaultHandler(object):
         self.start_time = time.time()
         request += verb
         ready = True
-        if verb == "POST":
+        if verb == b"POST":
             while True:
                 try:
                     data = conn.recv(1)
@@ -94,18 +95,18 @@ class SocketFileWrapper(object):
 
     def __init__(self, sock):
         self.sock = sock
-        self.buf = ""
+        self.buf = b""
 
 
     def read(self, n):
         while len(self.buf) < n:
             s = self.sock.recv(1024)
             self.buf += s
-            if s == '':
+            if s == b'':
                 break
         if len(self.buf) < n:
             rBuf = self.buf
-            self.buf = ''
+            self.buf = b''
             return rBuf
         rBuf = self.buf[:n]
         self.buf = self.buf[n:]
@@ -113,19 +114,19 @@ class SocketFileWrapper(object):
 
 
     def readline(self, max_char=None):
-        while not '\n' in self.buf:
+        while not b'\n' in self.buf:
             s = self.sock.recv(1024)
             self.buf += s
-            if s == '':
+            if s == b'':
                 break
             if max_char is not None and len(self.buf) >= max_char:
                 rBuf = self.buf[:max_char]
                 self.buf = self.buf[max_char:]
                 return rBuf
-        delim = self.buf.find('\n')+1
+        delim = self.buf.find(b'\n')+1
         if delim < 0:
             rBuf = self.buf
-            self.buf = ''
+            self.buf = b''
             return rBuf
         rBuf = self.buf[:delim]
         self.buf = self.buf[delim:]
@@ -149,6 +150,9 @@ class SocketFileWrapper(object):
     def write(self, msg):
         self.sock.send(msg)
 
+
+def thread_print(msg, *args, **kwargs):
+    print("[Thread: {}] {}".format(current_thread(), str(msg)), *args, **kwargs)
 
 class WSGIHandler(DefaultHandler):
 
@@ -268,7 +272,7 @@ class WSGIHandler(DefaultHandler):
                     try:
                         self.firstChunk = next(payload)
                     except StopIteration:
-                        self.firstChunk = ""
+                        self.firstChunk = None
                 else:
                     chunkedEncoding = False
 
@@ -293,11 +297,14 @@ class WSGIHandler(DefaultHandler):
 
                 #send headers
                 resp = Response(status, headers, self.prePayload)
-                conn.sendall(str(resp).encode())
+                resp_payload = str(resp).encode()
+                thread_print(resp_payload)
+                conn.sendall(resp_payload)
 
                 if chunkedEncoding:
                     self.logger.log("INFO","Using chunked transfer encoding")
-                    conn.sendall(self._chunkify(self.firstChunk))
+                    if self.firstChunk:
+                        conn.sendall(self._chunkify(self.firstChunk))
                     for p in payload:
                         if p == "": continue
                         chunk = self._chunkify(p)
@@ -353,9 +360,10 @@ class WSGIHandler(DefaultHandler):
 
         try:
             environ['wsgi.input'].close()
-            conn.close()
         except:
             pass
+        finally:
+            conn.close()
 
 
 
