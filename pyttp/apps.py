@@ -72,7 +72,7 @@ class FileServer(object):
     """
 
 
-    def __init__(self, document_root, directory_listing=True, max_cache_age=3600):
+    def __init__(self, document_root, directory_listing=True, max_cache_age=3600000):
         """
         directory_listing: Allow directory listing if True.
         """
