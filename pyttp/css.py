@@ -21,12 +21,14 @@ class Rule:
 
     PREFIX_SPACING = " "
 
-    def __init__(self, selectors, *sub_rules_args, sub_rules=None, **declarations):
+    def __init__(self, selectors, *sub_rules_args, sub_rules=None, extra_declarations=None, **declarations):
         self.selectors = [selector.strip() for selector in selectors.split(",")]
         self.sub_rules = list(sub_rules_args)
         if sub_rules is not None:
             self.sub_rules.extend(sub_rules)
         self.declarations = declarations
+        if extra_declarations is not None:
+            self.declarations.update(extra_declarations)
 
     def collect(
         self,
