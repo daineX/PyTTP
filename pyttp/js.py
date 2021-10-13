@@ -35,6 +35,7 @@ OPS = {
     ast.Invert: "~",
     ast.Pass: ";",
     ast.Or: "||",
+    ast.In: "in",
 }
 
 def make_name_transformer(mapping):
