@@ -207,7 +207,7 @@ class JSVisitor(ast.NodeVisitor):
             return self.visit_Pow(left, right)
         else:
             op = self.visit(node.op)
-            return f"{left} {op} {right}"
+            return f"({left} {op} {right})"
 
     def visit_BoolOp(self, node):
         left, right = node.values
@@ -666,5 +666,10 @@ if __name__ == "__main__":
 
         a **= b
         foo = f"bar = {a ** b}"
+
+        k = (10 + 3) % 2
+        k = 10 + 3 % 2
+        k = 10 * 3 + 2
+        k = 10 + 3 * 2
 
     print(toJS(toCompile, debug=True))
