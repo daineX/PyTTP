@@ -16,17 +16,27 @@ class OrderedListDictProxy:
     def __getattr__(self, key):
         return getattr(self.data, key)
 
+class DeclarationSet:
+
+    def __init__(self, **declarations):
+        self.declarations = declarations
 
 class Rule:
 
     PREFIX_SPACING = " "
 
-    def __init__(self, selectors, *sub_rules_args, sub_rules=None, **declarations):
+    def __init__(self, selectors, *sub_rules_or_decl_args, sub_rules=None, **declarations):
         self.selectors = [selector.strip() for selector in selectors.split(",")]
-        self.sub_rules = list(sub_rules_args)
+        self.sub_rules = []
+        self.declarations = {}
+        for sub_rule_or_decl in sub_rules_or_decl_args:
+            if isinstance(sub_rule_or_decl, Rule):
+                self.sub_rules.append(sub_rule_or_decl)
+            else:
+                self.declarations.update(sub_rule_or_decl.declarations)
         if sub_rules is not None:
             self.sub_rules.extend(sub_rules)
-        self.declarations = declarations
+        self.declarations.update(declarations)
 
     def collect(
         self,
@@ -128,6 +138,7 @@ class Ruleset(Rule):
         return type(self)(*rules)
 
 
+ds = DeclarationSet
 r = Rule
 ar = AugmentingRule
 rs = Ruleset
@@ -137,11 +148,9 @@ if __name__ == "__main__":
     ruleset = rs(
         r("body",
             r(".foo, bar",
-                border_width="2px",
-                sub_rules=[
-                    r("span", font_weight=300),
-                    ar(".wide", border_width="var(--wide-border)"),
-                ]
+                ds(border_width="2px"),
+                ar(".wide", border_width="var(--wide-border)"),
+                r("span", font_weight=300),
             ),
             __wide_border="3px",
     ))
