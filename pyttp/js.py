@@ -175,7 +175,7 @@ class JSVisitor(ast.NodeVisitor):
         specs = {"var", "let", "const"}
         t = self.visit(node.target)
         v = self.visit(node.value)
-        annotations = {ann.strip() for ann in self.visit(node.annotation).split("|")}
+        annotations = {ann.strip() for ann in self.visit(node.annotation).strip("()").split("|")}
         for annotation in annotations:
             if annotation in specs:
                 self.emit(f"{annotation} {t}")
