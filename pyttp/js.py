@@ -165,6 +165,14 @@ class JSVisitor(ast.NodeVisitor):
         self.emit("}\n")
         self.decorate(node)
 
+    def visit_AsyncFunctionDef(self, node):
+        self.emit("async ")
+        self.visit_FunctionDef(node)
+
+    def visit_Await(self, node):
+        call = self.visit_Call(node.value)
+        return f"await {call}"
+
     def visit_Assign(self, node):
         v = self.visit(node.value)
         for target in node.targets:
