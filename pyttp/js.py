@@ -238,8 +238,13 @@ class JSVisitor(ast.NodeVisitor):
         return f"{left} {compOps}"
 
     def visit_If(self, node):
-        t = self.visit(node.test)
-        self.emit(f"if ({t}) {{")
+        expr = self.visit(node.test)
+        if isinstance(node.test, ast.NamedExpr):
+            self.emit(expr)
+            test = self.visit(node.test.target)
+        else:
+            test = expr
+        self.emit(f"if ({test}) {{")
         self.iterate(node)
         self.emit("}")
         if node.orelse:
@@ -300,6 +305,11 @@ class JSVisitor(ast.NodeVisitor):
     def visit_Expr(self, node):
         self.emit(self.visit(node.value))
         self.emit(";\n")
+
+    def visit_NamedExpr(self, node):
+        name = self.visit(node.target)
+        value = self.visit(node.value)
+        return f"{name} = {value};"
 
     def visit_Index(self, node):
         return self.visit(node.value)
