@@ -82,8 +82,7 @@ class ControllerResponse:
         elif isinstance(payload, str):
             return payload.encode()
         else:
-            raise Exception("Expected payload to be str or bytes, not {}".format(type(payload)))
-
+            return ''.join(payload).encode()
 
 class EmptyResponse(ControllerResponse):
 
