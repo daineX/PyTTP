@@ -170,8 +170,8 @@ class JSVisitor(ast.NodeVisitor):
         self.visit_FunctionDef(node)
 
     def visit_Await(self, node):
-        call = self.visit_Call(node.value)
-        return f"await {call}"
+        awaitable = self.visit(node.value)
+        return f"await {awaitable}"
 
     def visit_Assign(self, node):
         v = self.visit(node.value)
